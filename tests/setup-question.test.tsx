@@ -18,6 +18,7 @@ describe("QuestionEditor", () => {
     fireEvent.change(textbox(), { target: { value: "Should we ship?" } });
     expect(useArenaStore.getState().prompt).toBe("Should we ship?");
     expect(textbox()).toHaveValue("Should we ship?");
+    expect(textbox()).toHaveAttribute("dir", "auto");
     expect(screen.getByText(/^15 \/ 10,000/)).toBeInTheDocument();
   });
 

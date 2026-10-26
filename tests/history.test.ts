@@ -86,6 +86,15 @@ describe("saveRun / listRuns / getRun", () => {
     expect(JSON.parse(store.getItem(HISTORY_KEY)!)).toHaveLength(1);
   });
 
+  it("preserves Persian and mixed RTL/LTR text in history", () => {
+    const fa = "\u0622\u0632\u0645\u0627\u06cc\u0634 RoundTable \u0645\u0648\u0641\u0642 \u0628\u0648\u062f";
+    const entry = saveRun(snap({ prompt: fa, finalSummary: fa }), { id: "fa", savedAt: 7 }, store)!;
+    expect(entry.snapshot.prompt).toBe(fa);
+    expect(entry.title).toBe(fa);
+    expect(listRuns(store)[0].snapshot.finalSummary).toBe(fa);
+    expect(JSON.parse(store.getItem(HISTORY_KEY)!)[0].snapshot.prompt).toBe(fa);
+  });
+
   it("honours extras and handles missing score / cost", () => {
     const entry = saveRun(
       snap({ finalScore: null, tokenTotal: null, engine: "blind-jury" }),

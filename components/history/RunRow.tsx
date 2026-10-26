@@ -129,6 +129,7 @@ function NoteEditor({
   if (editing) {
     return (
       <Input
+        dir="auto"
         ref={inputRef}
         value={draft}
         maxLength={NOTE_MAX}
@@ -144,6 +145,7 @@ function NoteEditor({
 
   return (
     <button
+      dir="auto"
       ref={buttonRef}
       type="button"
       onClick={start}
@@ -208,7 +210,7 @@ export default function RunRow({
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1">
-          <h3 id={titleId} className="break-words text-[15px] font-semibold leading-snug text-fg">
+          <h3 dir="auto" id={titleId} className="break-words text-[15px] font-semibold leading-snug text-fg">
             {entry.title}
           </h3>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-fg-muted">

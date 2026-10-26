@@ -16,17 +16,21 @@ const components: Components = {
   a: ({ node: _node, ...props }) => (
     <a {...props} target="_blank" rel="noopener noreferrer nofollow" />
   ),
+  pre: ({ node: _node, ...props }) => <pre {...props} dir="ltr" />,
+  code: ({ node: _node, ...props }) => <code {...props} dir="ltr" />,
 };
 
 export default function Markdown({ children }: { children: string }) {
   return (
-    <ReactMarkdown
+    <div dir="auto">
+      <ReactMarkdown
       remarkPlugins={remarkPlugins}
       components={components}
       disallowedElements={disallowedElements}
       unwrapDisallowed
     >
-      {children}
-    </ReactMarkdown>
+        {children}
+      </ReactMarkdown>
+    </div>
   );
 }

@@ -130,6 +130,36 @@ describe("session — markdown & json exports", () => {
     expect(parsed.rounds[0].responses).toHaveLength(2);
   });
 
+  it("preserves Persian and mixed RTL/LTR text in Markdown and JSON exports", () => {
+    const fa = "\u0622\u0632\u0645\u0627\u06cc\u0634 RoundTable \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u0627\u0646\u062c\u0627\u0645 \u0634\u062f";
+    const mixed = `${fa} - npm test`;
+    const snapshot: SessionSnapshot = {
+      ...baseSnapshot,
+      prompt: mixed,
+      finalSummary: fa,
+      rounds: [
+        {
+          ...baseSnapshot.rounds[0],
+          responses: [
+            {
+              ...baseSnapshot.rounds[0].responses[0],
+              content: `${fa}\n\n\`\`\`bash\nnpm test\n\`\`\``,
+            },
+          ],
+        },
+      ],
+    };
+    const md = snapshotToMarkdown(snapshot);
+    const json = snapshotToJSON(snapshot);
+    expect(md).toContain(mixed);
+    expect(md).toContain(fa);
+    expect(md).toContain("npm test");
+    const parsed = JSON.parse(json);
+    expect(parsed.prompt).toBe(mixed);
+    expect(parsed.finalSummary).toBe(fa);
+    expect(parsed.rounds[0].responses[0].content).toContain(fa);
+  });
+
   it("snapshotFilename is slug-like and includes the extension", () => {
     const f = snapshotFilename(baseSnapshot, "md");
     expect(f).toMatch(/^roundtable-should-we-ship-on-friday-/);

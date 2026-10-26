@@ -82,6 +82,7 @@ export default function QuestionEditor({ onSubmit, className }: QuestionEditorPr
       </div>
 
       <Textarea
+        dir="auto"
         aria-labelledby={headingId}
         aria-describedby={[helpId, countId, tooLong ? errorId : null].filter(Boolean).join(" ")}
         aria-invalid={tooLong || undefined}
