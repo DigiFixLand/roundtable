@@ -89,7 +89,7 @@ export default function CompareEngines({ onOpenSnapshot }: CompareEnginesProps) 
                 Spread flags
               </th>
               <th scope="col" className="py-2 pr-3 font-medium">
-                Judge majority
+                Recommended decision
               </th>
               <th scope="col" className="py-2 pr-3 text-right font-medium">
                 Cost
@@ -142,7 +142,8 @@ function EngineRow({ row, onOpen }: { row: Row; onOpen: (s: SessionSnapshot) => 
       ? "Failed"
       : String(s.claims.contradictions.length)
     : "—";
-  const majority = s.judge?.majorityPosition?.trim();
+  const recommendation =
+    s.judge?.decisionRecord?.recommendedDecision?.trim() || s.judge?.majorityPosition?.trim();
 
   return (
     <tr className="border-b border-border last:border-0">
@@ -164,8 +165,8 @@ function EngineRow({ row, onOpen }: { row: Row; onOpen: (s: SessionSnapshot) => 
       <td className={cn(cell, "text-right tabular-nums text-fg")}>{contradictions}</td>
       <td className={cn(cell, "text-right tabular-nums text-fg")}>{s.disagreements.length}</td>
       <td className={cn(cell, "min-w-[240px] max-w-[360px] text-fg")}>
-        {majority ? (
-          excerpt(majority, 200)
+        {recommendation ? (
+          excerpt(recommendation, 200)
         ) : (
           <span className="text-fg-muted">
             {s.options.judgeEnabled ? "No verdict" : "Judge off"}

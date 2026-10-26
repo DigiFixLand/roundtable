@@ -12,3 +12,5 @@ coverage/
 *.log
 .pnpm-store/
 .devcontainer/
+/data/*.sqlite
+/data/*.sqlite-*

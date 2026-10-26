@@ -1,10 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// RoundTable — Local run history
+// RoundTable — legacy browser history adapter
 // ─────────────────────────────────────────────────────────────
-// Completed runs are kept in localStorage under `rt.history.v1` as a
-// JSON array of `HistoryEntry` (newest first), at most 50. Every
-// storage access is wrapped in try/catch: private windows, disabled
-// storage and quota errors must never break the app.
+// Phase 2 moved production history to server-side SQLite. This module
+// keeps the original localStorage implementation as a compatibility and
+// deterministic-test adapter only; production UI uses /api/history.
 //
 // Every function takes an optional trailing `storage` argument (any
 // `Storage`-like object) so tests can inject a fake. It defaults to

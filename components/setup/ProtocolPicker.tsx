@@ -6,7 +6,7 @@
 // Engine as three radio cards in plain language, then an
 // "Advanced" disclosure: rounds stepper (Debate / Red team), the
 // Debate-only toggles (randomize order, blind round 1, early stop),
-// judge synthesis + judge model, claim extraction and the cost cap.
+// Chairman Decision Record + model, claim extraction and the cost cap.
 
 import { ChevronRight, Minus, Plus } from "lucide-react";
 import { useId, useState } from "react";
@@ -29,18 +29,31 @@ const ENGINES: { id: EngineType; facts: string }[] = [
 ];
 
 /**
- * Default judge: a recommended (preferred) model that is not already on
- * the panel, else any recommended model, else the first model.
+ * Default Chairman model: prefer the tested OpenRouter path, then other
+ * OpenRouter models, then direct-provider preferences/fallbacks.
  */
 export function suggestJudgeModel(
   availableModels: readonly ModelInfo[],
   participants: readonly Pick<Participant, "modelInfo">[],
 ): ModelInfo | undefined {
   const seated = new Set(participants.map((p) => p.modelInfo.id));
+  const unseated = (m: ModelInfo) => !seated.has(m.id);
+  const openRouter = availableModels.filter((m) => m.providerId === "openrouter");
+  const testedOpenRouterIds = ["google/gemini-2.5-flash-lite", "openai/gpt-4.1-mini"];
+  const tested = testedOpenRouterIds
+    .map((id) => openRouter.find((m) => m.modelId === id))
+    .filter((m): m is ModelInfo => !!m);
+  const openRouterPreferred = openRouter.filter((m) => m.preferred);
   const preferred = availableModels.filter((m) => m.preferred);
   return (
-    preferred.find((m) => !seated.has(m.id)) ??
-    availableModels.find((m) => !seated.has(m.id)) ??
+    tested.find(unseated) ??
+    openRouterPreferred.find(unseated) ??
+    openRouter.find(unseated) ??
+    preferred.find(unseated) ??
+    availableModels.find(unseated) ??
+    tested[0] ??
+    openRouterPreferred[0] ??
+    openRouter[0] ??
     preferred[0] ??
     availableModels[0]
   );
@@ -167,7 +180,7 @@ export default function ProtocolPicker({ className }: ProtocolPickerProps) {
       {engine === "blind-jury" && !options.judgeEnabled && (
         <div className="mt-3 flex flex-col gap-2 rounded-control border border-info/30 bg-info/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p className="text-fg">
-            Blind jury is built around the judge&apos;s summary, which is off.
+            Blind jury is built around the Chairman Decision Record, which is off.
           </p>
           <Button
             size="sm"
@@ -175,7 +188,7 @@ export default function ProtocolPicker({ className }: ProtocolPickerProps) {
             disabled={isRunning}
             className="shrink-0"
           >
-            Turn on judge
+            Turn on Chairman
           </Button>
         </div>
       )}
@@ -283,8 +296,8 @@ export default function ProtocolPicker({ className }: ProtocolPickerProps) {
 
             <div className="flex flex-col gap-2">
               <Toggle
-                label="Judge synthesis"
-                description="A separate, non-voting model writes the verdict: majority, minority and open disputes."
+                label="Chairman Decision Record"
+                description="A separate, non-voting Chairman writes Consensus, Disagreements, Unique Insights, the Recommended Decision, and Uncertainty."
                 checked={options.judgeEnabled}
                 onChange={setJudge}
                 disabled={isRunning}
@@ -292,24 +305,24 @@ export default function ProtocolPicker({ className }: ProtocolPickerProps) {
               {options.judgeEnabled && (
                 <div className="flex flex-col gap-1.5 pl-0 sm:pl-4">
                   <span id={judgeLabelId} className="text-[13px] text-fg-muted">
-                    Judge model
+                    Chairman model
                   </span>
                   <ModelPicker
-                    label="Judge model"
+                    label="Chairman model"
                     labelledBy={judgeLabelId}
                     describedBy={judgeMissing || judgeUnavailable ? judgeErrorId : undefined}
                     models={availableModels}
                     value={judgeModel}
                     onChange={(m) => setOption("judgeModelId", m.id)}
-                    placeholder="Choose a judge model"
+                    placeholder="Choose a Chairman model"
                     disabled={isRunning}
                     className="w-full sm:w-auto sm:max-w-sm"
                   />
                   {(judgeMissing || judgeUnavailable) && (
                     <p id={judgeErrorId} className="text-[13px] text-danger">
                       {judgeMissing
-                        ? "Pick a judge model, or turn the judge off."
-                        : "This server doesn't offer that judge model. Pick another."}
+                        ? "Pick a Chairman model, or turn the Decision Record off."
+                        : "This server doesn't offer that Chairman model. Pick another."}
                     </p>
                   )}
                 </div>

@@ -67,7 +67,7 @@ export function describeRunStatus(s: RunStatusInput): RunStatus {
 
   if (s.isRunning) {
     const phase = s.judgeRunning
-      ? "Writing judge synthesis"
+      ? "Writing Decision Record"
       : s.claimsRunning
         ? "Extracting contradictions"
         : s.currentRound > 0

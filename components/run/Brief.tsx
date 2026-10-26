@@ -1,7 +1,7 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// Brief — the answer first: score, verdict, where they split,
+// Brief — the answer first: score, Decision Record, where they split,
 // who moved. Fills in progressively while the run streams.
 // ─────────────────────────────────────────────────────────────
 
@@ -59,19 +59,19 @@ export default function Brief({ onJump }: BriefProps) {
       judgeBlock = (
         <Nudge>
           {sharedView
-            ? "Judge synthesis was off for this run, so there is no written verdict."
-            : "Enable judge synthesis to get a written verdict."}
+            ? "Decision Record was off for this run, so there is no Chairman recommendation."
+            : "Enable the Chairman Decision Record to get a structured recommendation."}
         </Nudge>
       );
     }
   } else if (isRunning) {
     judgeBlock = (
-      <BriefSection title="Judge synthesis" meta="Non-voting summariser">
-        <MutedNote>The judge writes its verdict after the final round.</MutedNote>
+      <BriefSection title="Decision Record" meta="Non-voting Chairman">
+        <MutedNote>The Chairman writes the Decision Record after the final round.</MutedNote>
       </BriefSection>
     );
   } else if (!failed) {
-    judgeBlock = <Nudge>No judge verdict was produced for this run.</Nudge>;
+    judgeBlock = <Nudge>No Decision Record was produced for this run.</Nudge>;
   }
 
   const claimsEnabled = options.extractClaimsEnabled === true;

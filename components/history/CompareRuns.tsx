@@ -114,9 +114,12 @@ function contradictionCount(s: SessionSnapshot): number | null {
   return s.claims.contradictions?.length ?? 0;
 }
 
-function majority(s: SessionSnapshot): string | null {
+function recommendedDecision(s: SessionSnapshot): string | null {
   if (!s.judge) return null;
-  const text = s.judge.majorityPosition?.trim() || s.judge.content?.trim();
+  const text =
+    s.judge.decisionRecord?.recommendedDecision?.trim() ||
+    s.judge.majorityPosition?.trim() ||
+    s.judge.content?.trim();
   return text ? excerpt(text, MAJORITY_MAX) : null;
 }
 
@@ -234,8 +237,8 @@ export default function CompareRuns({ a: first, b: second, onClose }: CompareRun
   const matches = matchParticipants(sa, sb);
   const ca = contradictionCount(sa);
   const cb = contradictionCount(sb);
-  const ma = majority(sa);
-  const mb = majority(sb);
+  const ma = recommendedDecision(sa);
+  const mb = recommendedDecision(sb);
 
   return (
     <section
@@ -327,9 +330,9 @@ export default function CompareRuns({ a: first, b: second, onClose }: CompareRun
               change={formatChange(a.score, b.score)}
             />
             <Row
-              label="Judge majority"
-              a={ma ?? <Muted>No judge verdict</Muted>}
-              b={mb ?? <Muted>No judge verdict</Muted>}
+              label="Recommended decision"
+              a={ma ?? <Muted>No Decision Record</Muted>}
+              b={mb ?? <Muted>No Decision Record</Muted>}
             />
             <Row
               label="Contradictions"

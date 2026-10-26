@@ -161,8 +161,10 @@ describe("JudgeCard", () => {
       },
     });
     render(<JudgeCard />);
-    expect(screen.getAllByText("None noted.")).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: "Show full synthesis" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("None noted.")).toHaveLength(3);
+    expect(
+      screen.queryByRole("button", { name: "Show full Chairman synthesis" }),
+    ).not.toBeInTheDocument();
   });
 });
 

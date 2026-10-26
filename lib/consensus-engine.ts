@@ -25,6 +25,7 @@ import type {
   ConsensusOptions,
   Disagreement,
   JudgeResult,
+  DecisionRecord,
   ClaimDigest,
   ClaimContradiction,
   TokenUsage,
@@ -260,6 +261,24 @@ function extractJudgeSection(text: string, heading: string): string {
   const pattern = new RegExp(`##\\s*${heading}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, "i");
   const m = text.match(pattern);
   return m ? m[1].trim() : "";
+}
+
+/** Parse the fixed Phase-2 Decision Record while remaining compatible with older judge output. */
+export function parseDecisionRecord(text: string): DecisionRecord {
+  const legacyMajority = extractJudgeSection(text, "Majority Position");
+  const legacyMinority = extractJudgeSection(text, "Minority Positions");
+  const legacyUnresolved = extractJudgeSection(text, "Unresolved Disputes");
+  const disagreements = extractJudgeSection(text, "Disagreements");
+
+  return {
+    consensus: extractJudgeSection(text, "Consensus") || legacyMajority,
+    disagreements:
+      disagreements || [legacyMinority, legacyUnresolved].filter(Boolean).join("\n\n"),
+    uniqueInsights: extractJudgeSection(text, "Unique Insights"),
+    recommendedDecision:
+      extractJudgeSection(text, "Recommended Answer / Decision") || legacyMajority,
+    uncertainty: extractJudgeSection(text, "Uncertainty") || legacyUnresolved,
+  };
 }
 
 // ── Scoring ────────────────────────────────────────────────
@@ -590,13 +609,16 @@ ${userPrompt}
     emit({ type: "judge-token", token: tail });
   }
 
+  const decisionRecord = parseDecisionRecord(content);
   const result: JudgeResult = {
     modelId: resolved.modelId,
     providerName: resolved.providerName,
     content,
-    majorityPosition: extractJudgeSection(content, "Majority Position"),
-    minorityPositions: extractJudgeSection(content, "Minority Positions"),
-    unresolvedDisputes: extractJudgeSection(content, "Unresolved Disputes"),
+    decisionRecord,
+    // Legacy aliases keep old comparisons/permalinks readable while the UI migrates.
+    majorityPosition: decisionRecord.consensus,
+    minorityPositions: decisionRecord.disagreements,
+    unresolvedDisputes: decisionRecord.uncertainty,
     usage,
   };
   emit({ type: "judge-end", result });

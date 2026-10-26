@@ -184,7 +184,7 @@ describe("describeRunStatus", () => {
     expect(describeRunStatus({ ...base, isRunning: true }).text).toBe("Starting");
     expect(
       describeRunStatus({ ...base, isRunning: true, currentRound: 5, judgeRunning: true }).text,
-    ).toBe("Writing judge synthesis");
+    ).toBe("Writing Decision Record");
     expect(
       describeRunStatus({ ...base, isRunning: true, currentRound: 5, claimsRunning: true }).text,
     ).toBe("Extracting contradictions");

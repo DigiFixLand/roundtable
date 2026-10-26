@@ -17,7 +17,7 @@ import AppShell from "@/components/AppShell";
 import SetupView from "@/components/setup/SetupView";
 import RunView from "@/components/run/RunView";
 import HistoryView from "@/components/history/HistoryView";
-import { saveCompletedRun, useHistory, type HistoryEntry } from "@/components/history/useHistory";
+import { persistCompletedRun, useHistory, type HistoryEntry } from "@/components/history/useHistory";
 import { optionsForEngine } from "@/lib/engine-rules";
 import { getRunBlocker } from "@/lib/run-blocker";
 import { engineLabel } from "@/lib/score-label";
@@ -446,9 +446,11 @@ function processEvent(event: ConsensusEvent): "complete" | "failed" | null {
       s.completeConsensus(event.finalScore, event.summary, event.roundsCompleted);
       if (!s.sweepActive) toast.success(`Consensus complete! Score: ${event.finalScore}%`);
       const snapshot = s.getSnapshot();
-      if (saveCompletedRun(snapshot)) toast.success("Saved to history");
-      else if (snapshot.rounds.length > 0)
-        toast.error("Couldn't save to history (storage unavailable or full)");
+      void persistCompletedRun(snapshot).then((entry) => {
+        if (entry) toast.success("Saved to history");
+        else if (snapshot.rounds.length > 0)
+          toast.error("Couldn't save to history (server persistence unavailable)");
+      });
       return "complete";
     }
     case "error":

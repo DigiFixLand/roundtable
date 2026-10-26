@@ -49,7 +49,7 @@ describe("CompareRuns", () => {
     expect(score.b).toHaveTextContent("74Broad agreement with reservations");
     expect(score.change).toHaveTextContent(`${MINUS}6`);
 
-    const judge = row("Judge majority");
+    const judge = row("Recommended decision");
     expect(judge.a).toHaveTextContent(/^Start with a modular monolith/);
     expect(judge.a.textContent!.length).toBeLessThanOrEqual(240);
 
@@ -156,7 +156,7 @@ describe("CompareRuns", () => {
 
     expect(row("Final score").b).toHaveTextContent("No score");
     expect(row("Final score").change).toHaveTextContent("—");
-    expect(row("Judge majority").b).toHaveTextContent("No judge verdict");
+    expect(row("Recommended decision").b).toHaveTextContent("No Decision Record");
     expect(row(/Contradictions/).b).toHaveTextContent("Not extracted");
     expect(row(/Contradictions/).change).toHaveTextContent("—");
     expect(row(/Disagreement flags/).change).toHaveTextContent(`${MINUS}4`);
@@ -193,8 +193,8 @@ describe("CompareRuns", () => {
       />,
     );
     expect(row(/Contradictions/).a).toHaveTextContent("Extraction failed");
-    expect(row("Judge majority").a).toHaveTextContent("Only raw content.");
-    expect(row("Judge majority").b).toHaveTextContent("No judge verdict");
+    expect(row("Recommended decision").a).toHaveTextContent("Only raw content.");
+    expect(row("Recommended decision").b).toHaveTextContent("No Decision Record");
     expect(row("Participants").b).toHaveTextContent("None");
   });
 

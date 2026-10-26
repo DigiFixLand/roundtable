@@ -41,26 +41,36 @@ describe("Brief — fixture run (3 participants, 4 rounds, judge, 2 claims)", ()
     expect(screen.getByRole("tooltip")).toHaveTextContent(/self-reported confidence/);
   });
 
-  it("shows the judge's majority / minority / unresolved positions", () => {
+  it("shows the five-section Decision Record while preserving legacy fixture evidence", () => {
     render(<Brief onJump={noop} />);
-    const judge = region("Judge synthesis");
-    expect(within(judge).getByText("Majority")).toBeInTheDocument();
-    expect(within(judge).getByText("Minority")).toBeInTheDocument();
-    expect(within(judge).getByText("Unresolved")).toBeInTheDocument();
+    const judge = region("Decision Record");
+    for (const heading of [
+      "Consensus",
+      "Disagreements",
+      "Unique Insights",
+      "Recommended Answer / Decision",
+      "Uncertainty",
+    ]) {
+      expect(within(judge).getByText(heading)).toBeInTheDocument();
+    }
     expect(
-      within(judge).getByText(/Start with a modular monolith with enforced module boundaries/),
-    ).toBeInTheDocument();
+      within(judge).getAllByText(/Start with a modular monolith with enforced module boundaries/),
+    ).toHaveLength(2);
     expect(within(judge).getByText(/conditional exception/)).toBeInTheDocument();
     expect(
       within(judge).getByText(/cost of later decomposition remains contested/),
     ).toBeInTheDocument();
     expect(within(judge).getByText(/Claude · claude-sonnet-4-20250514/)).toBeInTheDocument();
 
-    // Full synthesis is one click away and only rendered when expanded.
+    // Raw legacy synthesis remains one click away for evidence/transparency.
     expect(within(judge).queryByText(/Synthesis Confidence/)).not.toBeInTheDocument();
-    fireEvent.click(within(judge).getByRole("button", { name: "Show full synthesis" }));
+    fireEvent.click(
+      within(judge).getByRole("button", { name: "Show full Chairman synthesis" }),
+    );
     expect(within(judge).getByText(/Synthesis Confidence/)).toBeInTheDocument();
-    fireEvent.click(within(judge).getByRole("button", { name: "Hide full synthesis" }));
+    fireEvent.click(
+      within(judge).getByRole("button", { name: "Hide full Chairman synthesis" }),
+    );
     expect(within(judge).queryByText(/Synthesis Confidence/)).not.toBeInTheDocument();
   });
 
@@ -209,7 +219,7 @@ describe("Brief — progressive and edge states", () => {
     const { rerender } = render(<Brief onJump={noop} />);
     expect(screen.getByText("The score appears when round 1 finishes.")).toBeInTheDocument();
     expect(
-      screen.getByText("The judge writes its verdict after the final round."),
+      screen.getByText("The Chairman writes the Decision Record after the final round."),
     ).toBeInTheDocument();
     expect(
       screen.getByText("Contradictions are extracted after the final round."),
@@ -238,7 +248,7 @@ describe("Brief — progressive and edge states", () => {
     useArenaStore.getState().appendJudgeToken("## Majority Position\nLeaning monolith");
     useArenaStore.getState().startClaims("gpt-4o", "OpenAI");
     render(<Brief onJump={noop} />);
-    const judge = region("Judge synthesis");
+    const judge = region("Decision Record");
     expect(within(judge).getByText(/Leaning monolith/)).toBeInTheDocument();
     expect(within(judge).getByText("Writing…")).toBeInTheDocument();
     expect(
@@ -258,10 +268,10 @@ describe("Brief — progressive and edge states", () => {
     );
     render(<Brief onJump={noop} />);
     expect(
-      screen.getByText("Enable judge synthesis to get a written verdict."),
+      screen.getByText("Enable the Chairman Decision Record to get a structured recommendation."),
     ).toBeInTheDocument();
     expect(screen.getByText(/Enable claim extraction/)).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Judge synthesis" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Decision Record" })).not.toBeInTheDocument();
   });
 
   it("words the nudges for a read-only shared run", () => {
@@ -272,14 +282,14 @@ describe("Brief — progressive and edge states", () => {
       claims: null,
     });
     render(<Brief onJump={noop} />);
-    expect(screen.getByText(/Judge synthesis was off for this run/)).toBeInTheDocument();
+    expect(screen.getByText(/Decision Record was off for this run/)).toBeInTheDocument();
     expect(screen.getByText("Claim extraction was off for this run.")).toBeInTheDocument();
   });
 
   it("says so when the judge was on but produced nothing", () => {
     useArenaStore.getState().loadSnapshot({ ...FIXTURE_SNAPSHOT, judge: null });
     render(<Brief onJump={noop} />);
-    expect(screen.getByText("No judge verdict was produced for this run.")).toBeInTheDocument();
+    expect(screen.getByText("No Decision Record was produced for this run.")).toBeInTheDocument();
   });
 
   it("shows claim-extraction errors inline and the empty-contradictions note", () => {

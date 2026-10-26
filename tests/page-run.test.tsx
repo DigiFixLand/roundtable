@@ -96,7 +96,7 @@ describe("HomePage — run", () => {
     const score = screen.getByRole("region", { name: "Consensus score" });
     expect(score).toHaveTextContent("80");
     expect(score).toHaveTextContent("Strong agreement");
-    expect(screen.getByRole("region", { name: "Judge synthesis" })).toHaveTextContent(
+    expect(screen.getByRole("region", { name: "Decision Record" })).toHaveTextContent(
       "Majority verdict.",
     );
     expect(screen.getByRole("region", { name: "Where they split" })).toHaveTextContent(
@@ -435,7 +435,7 @@ describe("HomePage — a run that ends mid-judge", () => {
     live.push(upToJudgeToken());
     await waitFor(() => expect(useArenaStore.getState().judgeRunning).toBe(true));
     fireEvent.click(screen.getAllByRole("button", { name: /^Stop/ })[0]);
-    expect(await screen.findByText("No judge verdict was produced for this run.")).toBeVisible();
+    expect(await screen.findByText("No Decision Record was produced for this run.")).toBeVisible();
     expect(screen.queryByText("Writing…")).not.toBeInTheDocument();
   });
 
@@ -468,7 +468,7 @@ describe("HomePage — Esc in a text field", () => {
 });
 
 describe("HomePage — history save failure", () => {
-  const SAVE_FAILED = "Couldn't save to history (storage unavailable or full)";
+  const SAVE_FAILED = "Couldn't save to history (server persistence unavailable)";
 
   it("tells the user when a finished run can't be saved", async () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {

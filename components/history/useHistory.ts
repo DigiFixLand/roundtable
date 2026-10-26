@@ -1,11 +1,6 @@
-// ─────────────────────────────────────────────────────────────
-// History — React binding over lib/history.ts
-// ─────────────────────────────────────────────────────────────
-// `useHistory()` reads the saved runs through `useSyncExternalStore`:
-// the server snapshot is always empty, the client reads storage after
-// mount, and every mutation made through lib/history.ts (this tab) or
-// a `storage` event (another tab) re-renders subscribers. The page
-// calls `saveCompletedRun()` when a run finishes.
+// History client binding. Production uses the server-side SQLite API.
+// The legacy StorageLike path remains only as an explicit test/compatibility
+// adapter; browser localStorage is no longer the production source of truth.
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
@@ -25,6 +20,9 @@ import type { SessionSnapshot } from "@/lib/types";
 
 export type { HistoryEntry, SaveRunExtras, StorageLike } from "@/lib/history";
 
+const EMPTY: HistoryEntry[] = [];
+const isTest = process.env.NODE_ENV === "test";
+
 /** 32-bit FNV-1a over a string, as unsigned base-36. */
 function fnv1a(s: string, seed = 0x811c9dc5): string {
   let h = seed;
@@ -35,25 +33,17 @@ function fnv1a(s: string, seed = 0x811c9dc5): string {
   return (h >>> 0).toString(36);
 }
 
-/**
- * Stable id for a run, derived from its engine, question and the
- * timestamps of every response, so saving the same run twice replaces
- * the entry instead of duplicating it.
- */
+/** Stable id so re-saving one completed run updates instead of duplicating it. */
 export function runKey(snapshot: SessionSnapshot): string {
-  const parts: string[] = [snapshot.engine ?? "", snapshot.prompt ?? ""];
-  for (const round of snapshot.rounds ?? []) {
+  const parts: string[] = [snapshot?.engine ?? "", snapshot?.prompt ?? ""];
+  for (const round of snapshot?.rounds ?? []) {
     for (const r of round.responses ?? []) parts.push(`${r.participantId}@${r.timestamp}`);
   }
   const s = parts.join("|");
   return `run-${fnv1a(s)}${fnv1a(s, 0x01000193)}`;
 }
 
-/**
- * Save a finished run to history. Returns the stored entry, or null when
- * there is nothing to save (no rounds) or storage is unavailable / full.
- * Never throws. Re-saving the same run keeps its note.
- */
+/** Legacy synchronous helper kept for StorageLike tests and old callers. */
 export function saveCompletedRun(
   snapshot: SessionSnapshot,
   extras: SaveRunExtras = {},
@@ -69,25 +59,122 @@ export function saveCompletedRun(
   }
 }
 
-// ── External store per storage instance ────────────────────
+// ── SQLite-backed production source ────────────────────────
+let remoteRuns: HistoryEntry[] = EMPTY;
+let remoteLoaded = false;
+let remoteLoading: Promise<void> | null = null;
+let remoteRevision = 0;
+const remoteListeners = new Set<() => void>();
 
+function publishRemote(next: HistoryEntry[]) {
+  remoteRuns = next.length === 0 ? EMPTY : [...next].sort((a, b) => b.savedAt - a.savedAt);
+  for (const listener of [...remoteListeners]) listener();
+}
+
+async function refreshRemote(force = false): Promise<void> {
+  if (remoteLoading && !force) return remoteLoading;
+  const revisionAtStart = remoteRevision;
+  remoteLoading = (async () => {
+    const response = await fetch("/api/history", { cache: "no-store" });
+    if (!response.ok) throw new Error(`History HTTP ${response.status}`);
+    const data = (await response.json()) as { runs?: HistoryEntry[] };
+    remoteLoaded = true;
+    // Never let an older GET overwrite a newer save/note/delete mutation.
+    if (revisionAtStart === remoteRevision)
+      publishRemote(Array.isArray(data.runs) ? data.runs : []);
+  })()
+    .catch((err) => {
+      console.error("Failed to load SQLite history:", err);
+    })
+    .finally(() => {
+      remoteLoading = null;
+    });
+  return remoteLoading;
+}
+
+const remoteSource = {
+  subscribe(listener: () => void) {
+    remoteListeners.add(listener);
+    if (!remoteLoaded) void refreshRemote();
+    return () => remoteListeners.delete(listener);
+  },
+  getSnapshot: () => remoteRuns,
+};
+
+function mutateRemote(next: HistoryEntry[]) {
+  remoteRevision++;
+  remoteLoaded = true;
+  publishRemote(next);
+}
+
+function upsertRemote(entry: HistoryEntry) {
+  mutateRemote([entry, ...remoteRuns.filter((r) => r.id !== entry.id)]);
+}
+
+export async function persistCompletedRun(
+  snapshot: SessionSnapshot,
+  extras: SaveRunExtras = {},
+): Promise<HistoryEntry | null> {
+  if (!snapshot || !Array.isArray(snapshot.rounds) || snapshot.rounds.length === 0) return null;
+  if (isTest) return saveCompletedRun(snapshot, extras);
+  try {
+    const response = await fetch("/api/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ snapshot, extras: { ...extras, id: extras.id ?? runKey(snapshot) } }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { entry?: HistoryEntry };
+    if (!data.entry) return null;
+    upsertRemote(data.entry);
+    return data.entry;
+  } catch (err) {
+    console.error("Failed to persist completed run:", err);
+    return null;
+  }
+}
+
+async function removeRemote(id: string): Promise<boolean> {
+  const response = await fetch(`/api/history/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!response.ok) return false;
+  mutateRemote(remoteRuns.filter((r) => r.id !== id));
+  return true;
+}
+
+async function updateNoteRemote(id: string, note: string): Promise<HistoryEntry | null> {
+  const response = await fetch(`/api/history/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { entry?: HistoryEntry };
+  if (!data.entry) return null;
+  upsertRemote(data.entry);
+  return data.entry;
+}
+
+async function clearRemote(): Promise<boolean> {
+  const response = await fetch("/api/history", { method: "DELETE" });
+  if (!response.ok) return false;
+  mutateRemote([]);
+  return true;
+}
+
+// ── Legacy external source (explicit StorageLike / tests) ──
 interface HistorySource {
   subscribe: (listener: () => void) => () => void;
   getSnapshot: () => HistoryEntry[];
 }
-
-const EMPTY: HistoryEntry[] = [];
 const getServerSnapshot = (): HistoryEntry[] => EMPTY;
-
 const DEFAULT_STORAGE_KEY = {};
 const NO_STORAGE_KEY = {};
 const sources = new WeakMap<object, HistorySource>();
 
-function createSource(storage: StorageLike | null | undefined): HistorySource {
+function createLegacySource(storage: StorageLike | null | undefined): HistorySource {
   let cache: HistoryEntry[] | null = null;
   const listeners = new Set<() => void>();
   let detach: (() => void) | null = null;
-
   const invalidate = () => {
     cache = null;
     for (const l of [...listeners]) l();
@@ -95,7 +182,6 @@ function createSource(storage: StorageLike | null | undefined): HistorySource {
   const onStorage = (e: StorageEvent) => {
     if (e.key === null || e.key === HISTORY_KEY) invalidate();
   };
-
   return {
     subscribe(listener) {
       listeners.add(listener);
@@ -113,7 +199,6 @@ function createSource(storage: StorageLike | null | undefined): HistorySource {
         if (listeners.size === 0 && detach) {
           detach();
           detach = null;
-          // Nobody is watching any more; re-read on the next mount.
           cache = null;
         }
       };
@@ -121,7 +206,6 @@ function createSource(storage: StorageLike | null | undefined): HistorySource {
     getSnapshot() {
       if (cache === null) {
         const list = listRuns(storage);
-        // The shared empty array keeps the hydration snapshot identical.
         cache = list.length === 0 ? EMPTY : list;
       }
       return cache;
@@ -129,43 +213,55 @@ function createSource(storage: StorageLike | null | undefined): HistorySource {
   };
 }
 
-function sourceFor(storage: StorageLike | null | undefined): HistorySource {
+function legacySourceFor(storage: StorageLike | null | undefined): HistorySource {
   const key = storage === undefined ? DEFAULT_STORAGE_KEY : (storage ?? NO_STORAGE_KEY);
   let source = sources.get(key);
   if (!source) {
-    source = createSource(storage);
+    source = createLegacySource(storage);
     sources.set(key, source);
   }
   return source;
 }
 
-// ── Hook ───────────────────────────────────────────────────
-
+type MaybePromise<T> = T | Promise<T>;
 export interface UseHistoryResult {
-  /** Saved runs, newest first. Empty on the server and before hydration. */
   runs: HistoryEntry[];
-  /** Delete one run; true when it was removed. */
+  remove: (id: string) => MaybePromise<boolean>;
+  updateNote: (id: string, note: string) => MaybePromise<HistoryEntry | null>;
+  clear: () => MaybePromise<boolean>;
+}
+
+export interface SyncHistoryResult {
+  runs: HistoryEntry[];
   remove: (id: string) => boolean;
-  /** Set or clear (empty string) a run's note; the updated entry or null. */
   updateNote: (id: string, note: string) => HistoryEntry | null;
-  /** Delete every saved run; true when storage accepted it. */
   clear: () => boolean;
 }
 
-/**
- * Saved runs plus the mutations the History view needs. `storage`
- * defaults to `localStorage` (tests pass a fake).
- */
+export function useHistory(storage: StorageLike | null): SyncHistoryResult;
+export function useHistory(): UseHistoryResult;
+export function useHistory(storage: StorageLike | null | undefined): UseHistoryResult;
 export function useHistory(storage?: StorageLike | null): UseHistoryResult {
-  const source = useMemo(() => sourceFor(storage), [storage]);
+  // Explicit StorageLike and test default preserve deterministic unit tests.
+  const legacy = storage !== undefined || isTest;
+  const source = useMemo(
+    () => (legacy ? legacySourceFor(storage) : remoteSource),
+    [legacy, storage],
+  );
   const runs = useSyncExternalStore(source.subscribe, source.getSnapshot, getServerSnapshot);
 
-  const remove = useCallback((id: string) => deleteRun(id, storage), [storage]);
-  const updateNote = useCallback(
-    (id: string, note: string) => updateRunNote(id, note, storage),
-    [storage],
+  const remove = useCallback(
+    (id: string) => (legacy ? deleteRun(id, storage) : removeRemote(id)),
+    [legacy, storage],
   );
-  const clear = useCallback(() => clearHistory(storage), [storage]);
+  const updateNote = useCallback(
+    (id: string, note: string) => (legacy ? updateRunNote(id, note, storage) : updateNoteRemote(id, note)),
+    [legacy, storage],
+  );
+  const clear = useCallback(
+    () => (legacy ? clearHistory(storage) : clearRemote()),
+    [legacy, storage],
+  );
 
   return useMemo(() => ({ runs, remove, updateNote, clear }), [runs, remove, updateNote, clear]);
 }

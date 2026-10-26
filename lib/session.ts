@@ -66,9 +66,31 @@ export function snapshotToMarkdown(snapshot: SessionSnapshot): string {
   }
 
   if (snapshot.judge) {
-    lines.push(`## Judge Synthesis — ${snapshot.judge.providerName} / ${snapshot.judge.modelId}`);
-    lines.push(snapshot.judge.content);
-    lines.push("");
+    const record = snapshot.judge.decisionRecord;
+    if (record) {
+      lines.push(`## Decision Record — ${snapshot.judge.providerName} / ${snapshot.judge.modelId}`);
+      lines.push("");
+      lines.push("### Consensus");
+      lines.push(record.consensus || "None noted.");
+      lines.push("");
+      lines.push("### Disagreements");
+      lines.push(record.disagreements || "None noted.");
+      lines.push("");
+      lines.push("### Unique Insights");
+      lines.push(record.uniqueInsights || "None noted.");
+      lines.push("");
+      lines.push("### Recommended Answer / Decision");
+      lines.push(record.recommendedDecision || "None noted.");
+      lines.push("");
+      lines.push("### Uncertainty");
+      lines.push(record.uncertainty || "None noted.");
+      lines.push("");
+    } else {
+      // Older snapshots keep their original judge text intact.
+      lines.push(`## Judge Synthesis — ${snapshot.judge.providerName} / ${snapshot.judge.modelId}`);
+      lines.push(snapshot.judge.content);
+      lines.push("");
+    }
   }
 
   if (snapshot.claims && snapshot.claims.contradictions.length > 0) {

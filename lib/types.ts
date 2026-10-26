@@ -142,11 +142,28 @@ export interface Disagreement {
   label: string;
 }
 
-/** Judge synthesis output (non-voting final summariser) */
+/** Fixed Chairman output used as the durable decision artifact. */
+export interface DecisionRecord {
+  /** What the models genuinely agree on. */
+  consensus: string;
+  /** Substantive remaining disagreements and why they matter. */
+  disagreements: string;
+  /** Decision-relevant points raised by only one or a few models. */
+  uniqueInsights: string;
+  /** The practical conclusion the Chairman recommends. */
+  recommendedDecision: string;
+  /** Unverified claims, caveats, and places confidence must not be read as truth. */
+  uncertainty: string;
+}
+
+/** Judge/Chairman synthesis output (non-voting final summariser). */
 export interface JudgeResult {
   modelId: string;
   providerName: string;
   content: string;
+  /** Phase-2 structured output. Optional so old snapshots remain readable. */
+  decisionRecord?: DecisionRecord;
+  /** Legacy aliases retained for older snapshots/components/permalinks. */
   majorityPosition: string;
   minorityPositions: string;
   unresolvedDisputes: string;

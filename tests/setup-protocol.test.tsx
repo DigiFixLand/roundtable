@@ -83,13 +83,13 @@ describe("ProtocolPicker — engine cards", () => {
     expect(options().rounds).toBe(3);
   });
 
-  it("nudges Blind jury users to turn on the judge", () => {
+  it("nudges Blind jury users to turn on the Chairman", () => {
     render(<ProtocolPicker />);
     fireEvent.click(screen.getByRole("radio", { name: /Blind jury/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Turn on judge" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn on Chairman" }));
     expect(options().judgeEnabled).toBe(true);
     expect(options().judgeModelId).toBe("openai:gpt-4o");
-    expect(screen.queryByRole("button", { name: "Turn on judge" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Turn on Chairman" })).toBeNull();
   });
 });
 
@@ -197,27 +197,29 @@ describe("ProtocolPicker — advanced", () => {
   it("turning the judge on picks a sensible default model and shows the picker", () => {
     useArenaStore.getState().addParticipant(MODELS[0], getPersona("pessimist"));
     renderOpen();
-    expect(screen.queryByRole("button", { name: /^Judge model/ })).toBeNull();
-    fireEvent.click(screen.getByRole("switch", { name: "Judge synthesis" }));
+    expect(screen.queryByRole("button", { name: /^Chairman model/ })).toBeNull();
+    fireEvent.click(screen.getByRole("switch", { name: "Chairman Decision Record" }));
     expect(options().judgeEnabled).toBe(true);
     // Preferred model not already on the panel.
     expect(options().judgeModelId).toBe("anthropic:claude-sonnet-4");
-    const picker = screen.getByRole("button", { name: "Judge model Anthropic / claude-sonnet-4" });
+    const picker = screen.getByRole("button", { name: "Chairman model Anthropic / claude-sonnet-4" });
     fireEvent.click(picker);
     fireEvent.click(screen.getByRole("menuitem", { name: /Groq/ }));
     expect(options().judgeModelId).toBe("groq:llama-3.3-70b");
     // Turning it off and on again keeps the chosen judge.
-    fireEvent.click(screen.getByRole("switch", { name: "Judge synthesis" }));
-    fireEvent.click(screen.getByRole("switch", { name: "Judge synthesis" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Chairman Decision Record" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Chairman Decision Record" }));
     expect(options().judgeModelId).toBe("groq:llama-3.3-70b");
   });
 
   it("explains a missing or unavailable judge model", () => {
     useArenaStore.setState({ availableModels: [], options: { ...options(), judgeEnabled: false } });
     const { unmount } = renderOpen();
-    fireEvent.click(screen.getByRole("switch", { name: "Judge synthesis" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Chairman Decision Record" }));
     expect(options().judgeModelId).toBeUndefined();
-    expect(screen.getByText(/Pick a judge model, or turn the judge off/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Pick a Chairman model, or turn the Decision Record off/),
+    ).toBeInTheDocument();
     unmount();
 
     useArenaStore.setState({
@@ -225,7 +227,7 @@ describe("ProtocolPicker — advanced", () => {
       options: { ...options(), judgeEnabled: true, judgeModelId: "gone:model" },
     });
     renderOpen();
-    expect(screen.getByText(/doesn't offer that judge model/)).toBeInTheDocument();
+    expect(screen.getByText(/doesn't offer that Chairman model/)).toBeInTheDocument();
   });
 
   it("locks the controls while a run is in progress", () => {

@@ -1,26 +1,45 @@
 "use client";
 
-// ─────────────────────────────────────────────────────────────
-// Judge Card — non-voting synthesizer verdict
-// ─────────────────────────────────────────────────────────────
-// Completed: Majority / Minority / Unresolved from the parsed judge
-// result (falls back to the full text when parsing found nothing).
-// Running: streams `judgeStream` live as plain text; markdown is parsed
-// once the verdict is complete, not on every frame.
+// Chairman Decision Record — the primary non-voting synthesis artifact.
+// The fixed five-section record is rendered first; the raw Chairman text
+// remains available below it for transparency. Older snapshots are mapped
+// into the closest Phase-2 sections without rewriting their stored evidence.
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useArenaStore } from "@/lib/store";
 import { stripJudgeConfidence } from "@/lib/format";
+import type { DecisionRecord, JudgeResult } from "@/lib/types";
 import { cn } from "@/components/ui";
 import Markdown from "./Markdown";
 import { BriefSection } from "./run/BriefSection";
 
-const SECTIONS = [
-  { key: "majorityPosition", title: "Majority", stripe: "border-success" },
-  { key: "minorityPositions", title: "Minority", stripe: "border-info" },
-  { key: "unresolvedDisputes", title: "Unresolved", stripe: "border-warning" },
-] as const;
+const SECTIONS: Array<{
+  key: keyof DecisionRecord;
+  title: string;
+  stripe: string;
+}> = [
+  { key: "consensus", title: "Consensus", stripe: "border-success" },
+  { key: "disagreements", title: "Disagreements", stripe: "border-warning" },
+  { key: "uniqueInsights", title: "Unique Insights", stripe: "border-info" },
+  {
+    key: "recommendedDecision",
+    title: "Recommended Answer / Decision",
+    stripe: "border-accent",
+  },
+  { key: "uncertainty", title: "Uncertainty", stripe: "border-fg-muted" },
+];
+
+function recordForJudge(judge: JudgeResult): DecisionRecord {
+  if (judge.decisionRecord) return judge.decisionRecord;
+  return {
+    consensus: judge.majorityPosition ?? "",
+    disagreements: judge.minorityPositions ?? "",
+    uniqueInsights: "",
+    recommendedDecision: judge.majorityPosition ?? "",
+    uncertainty: judge.unresolvedDisputes ?? "",
+  };
+}
 
 export default function JudgeCard() {
   const judge = useArenaStore((s) => s.judge);
@@ -31,14 +50,16 @@ export default function JudgeCard() {
   if (!judge && !running) return null;
 
   const meta = judge
-    ? `${judge.providerName} · ${judge.modelId} · non-voting`
-    : "Non-voting summariser";
-  const structured = !running && !!judge && SECTIONS.some((s) => judge[s.key].trim().length > 0);
+    ? `${judge.providerName} · ${judge.modelId} · non-voting Chairman`
+    : "Non-voting Chairman";
+  const record = judge ? recordForJudge(judge) : null;
+  const structured =
+    !running && !!record && SECTIONS.some((section) => record[section.key].trim().length > 0);
   const fullText = stripJudgeConfidence(running ? stream : (judge?.content ?? ""));
 
   return (
     <BriefSection
-      title="Judge synthesis"
+      title="Decision Record"
       meta={meta}
       aside={
         running ? (
@@ -49,11 +70,11 @@ export default function JudgeCard() {
         ) : undefined
       }
     >
-      {structured && judge ? (
+      {structured && record ? (
         <>
           <div className="space-y-4">
             {SECTIONS.map(({ key, title, stripe }) => {
-              const text = stripJudgeConfidence(judge[key]);
+              const text = stripJudgeConfidence(record[key]);
               return (
                 <div key={key} className={cn("border-l-2 pl-3", stripe)}>
                   <h3 className="text-[13px] font-semibold text-fg-muted">{title}</h3>
@@ -73,10 +94,10 @@ export default function JudgeCard() {
               <button
                 type="button"
                 aria-expanded={showFull}
-                onClick={() => setShowFull((v) => !v)}
+                onClick={() => setShowFull((value) => !value)}
                 className="text-[13px] font-medium text-accent hover:underline"
               >
-                {showFull ? "Hide full synthesis" : "Show full synthesis"}
+                {showFull ? "Hide full Chairman synthesis" : "Show full Chairman synthesis"}
               </button>
               {showFull && (
                 <div className="prose-rt mt-2 border-t border-border pt-3">

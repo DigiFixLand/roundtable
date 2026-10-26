@@ -74,7 +74,12 @@ export function applyPreset(preset: PanelPreset, availableModels: ModelInfo[]): 
       candidates: preferred.length > 0 ? preferred : models,
     };
   });
-  providers.sort((a, b) => Number(b.hasPreferred) - Number(a.hasPreferred) || a.order - b.order);
+  providers.sort(
+    (a, b) =>
+      Number(b.providerId === "openrouter") - Number(a.providerId === "openrouter") ||
+      Number(b.hasPreferred) - Number(a.hasPreferred) ||
+      a.order - b.order,
+  );
 
   const used = new Map<string, number>();
   const seats: PresetSeat[] = [];
