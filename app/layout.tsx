@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "RoundTable",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
