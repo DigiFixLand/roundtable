@@ -7,6 +7,7 @@
 - Target hostname (NOT YET LIVE): `roundtable.digifixland.com`
 - Origin: `http://127.0.0.1:3000` on HUB-PC only.
 - Windows Scheduled Task: `DFL RoundTable Local Server`, at Windows user logon.
+- SQLite backup task: `DFL RoundTable SQLite Backup`, daily at 20:00 local time (while the Windows user session is available). `ops/windows/backup-roundtable.cjs` uses SQLite online backup, validates integrity, and retains the newest 14 backups outside Git at `C:\Users\MyPc\Documents\DFL-RoundTable\backups\roundtable`. A real backup was verified.
 - PWA assets already existed; manifest now includes `id`, `start_url`, `scope`, 192/512 icons, and `standalone` display. Apple home-screen metadata enabled.
 - Official `cloudflared` binary downloaded to `C:\Users\MyPc\Documents\DFL-RoundTable\bin\cloudflared.exe` (outside Git). Release SHA-256 and Authenticode signature were checked.
 - DNS for `digifixland.com` uses Cloudflare. The proposed hostname was not resolved during preparation.
@@ -22,7 +23,7 @@
 5. Install the official tunnel connector as a Windows service using the token in Cloudflare's secure UI/service setup (never paste the token into chat, code or Git). Recheck the service after restart. Keep origin bound to 127.0.0.1 and do not open inbound firewall ports.
 6. Verify from an unauthenticated Internet client that every route is blocked or redirected to Access login. Then authenticate with the permitted account and confirm the app, a tiny two-seat run, History persistence, and export. Recheck that credentials do not appear in client JSON.
 7. On mobile HTTPS URL, use Safari > Share > Add to Home Screen (iOS) or Chrome > Install app/Add to Home screen (Android). On Windows use Edge/Chrome > Install this site as an app.
-8. Before treating this as production, implement and verify a consistent periodic SQLite backup + restore test and monitor HUB uptime. If 24/7 availability is required, move the server to an always-on host with the same Access protections.
+8. The scheduled SQLite backup and integrity verification are already in place. Before production use, also perform an isolated full restore exercise and monitor HUB uptime. If 24/7 availability is required, move the server to an always-on host with the same Access protections.
 
 ## Safety / caveats
 
