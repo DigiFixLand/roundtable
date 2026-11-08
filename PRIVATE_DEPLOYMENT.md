@@ -7,14 +7,14 @@
 - Protected hostname: `https://roundtable.digifixland.com` (DNS and Access redirect active; the connector is **not yet running**, so authenticated requests cannot reach the app yet).
 - Origin: `http://127.0.0.1:3000` on HUB-PC only.
 - Windows Scheduled Task: `DFL RoundTable Local Server`, at Windows user logon.
-- SQLite backup task: `DFL RoundTable SQLite Backup`, daily at 20:00 local time (while the Windows user session is available). `ops/windows/backup-roundtable.cjs` uses SQLite online backup, validates integrity, and retains the newest 14 backups outside Git at `C:\Users\MyPc\Documents\DFL-RoundTable\backups\roundtable`. A real backup was verified.
+- SQLite backup task: `DFL RoundTable SQLite Backup`, daily at 20:00 local time (while the Windows user session is available). `ops/windows/backup-roundtable.cjs` uses SQLite online backup, validates integrity, and retains the newest 14 backups outside Git at `C:\Users\MyPc\Documents\DFL-RoundTable\backups\roundtable`. Backups exist, and an isolated restore copy passed SQLite `PRAGMA integrity_check=ok` without touching the production database. A full app-level restore rehearsal remains a later pre-production exercise.
 - PWA assets already existed; manifest now includes `id`, `start_url`, `scope`, 192/512 icons, and `standalone` display. Apple home-screen metadata enabled.
 - Official `cloudflared` binary downloaded to `C:\Users\MyPc\Documents\DFL-RoundTable\bin\cloudflared.exe` (outside Git). Release SHA-256 and Authenticode signature were checked.
 - Cloudflare Zero Trust Free enabled. Access application `DFL RoundTable - Private` protects the exact hostname with an Allow policy for the single email `digifixland@gmail.com`; other users are deny-by-default.
 - Dedicated remotely-managed Cloudflare Tunnel `dfl-roundtable-private` exists (ID `367c8ec5-8a5c-4368-9ca9-b5644259b4c9`). Published CNAME/route points to `http://127.0.0.1:3000`; no apex/www change.
 - `Protect with Access` is enabled on the published route; persisted team name was verified as `restless-boat-d165` (not `restless-boat-dl65`) and the application's AUD tag is configured.
 - Anonymous HTTPS requests for `/`, `/api/history`, `/api/providers`, and `/api/consensus` all returned a `302` redirect to the Cloudflare Access login. No API data was returned.
-- The tunnel connector is not installed and the dashboard reported no connection. A local `cloudflared tunnel run <name>` failed because remotely-managed tunnel credentials were missing; this is expected until the official service installation is completed.
+- The tunnel connector is not installed and the dashboard reported no connection. A local `cloudflared tunnel run <name>` failed because remotely-managed tunnel credentials were missing; this is expected until official service installation is completed. A Windows Administrator Command Prompt was open, but remote non-elevated execution could not focus/control it (Windows security boundary). The operator must paste and run the Cloudflare-provided install command locally in the elevated terminal.
 - No Cloudflare Tunnel token or API credential has been stored in the repo. A temporary unneeded RSA key file from setup was removed. The Cloudflare account authorization certificate remains outside Git on HUB-PC.
 
 ## Deployment order — security-critical
