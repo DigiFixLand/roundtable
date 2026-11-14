@@ -40,6 +40,12 @@ export default function SessionMenu({
   const copyPermalink = async () => {
     let url: string;
     try {
+      if (getSnapshot().documents?.length) {
+        toast.error(
+          "Permalinks are disabled for sessions with private documents. Use private export instead.",
+        );
+        return;
+      }
       const encoded = await encodeSnapshotToHash(getSnapshot());
       url = `${window.location.origin}${window.location.pathname}#${encoded}`;
     } catch {

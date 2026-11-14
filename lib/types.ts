@@ -3,6 +3,8 @@
 // ─────────────────────────────────────────────────────────────
 
 /** Raw provider config as stored in AI_PROVIDERS env var */
+import type { AttachedDocument } from "./documents";
+
 export interface ProviderConfig {
   id: string;
   name: string;
@@ -267,6 +269,7 @@ export type ConsensusEvent =
 /** Request body for /api/consensus */
 export interface ConsensusRequest {
   prompt: string;
+  documents?: AttachedDocument[];
   participants: Participant[];
   options: ConsensusOptions;
 }
@@ -275,6 +278,7 @@ export interface ConsensusRequest {
 export interface SessionSnapshot {
   v: 1;
   prompt: string;
+  documents?: AttachedDocument[];
   engine: EngineType;
   options: ConsensusOptions;
   participants: Participant[];
@@ -317,6 +321,7 @@ export interface ArenaState {
   // Configuration
   participants: Participant[];
   prompt: string;
+  documents: AttachedDocument[];
   options: ConsensusOptions;
 
   // Consensus execution state
@@ -381,6 +386,8 @@ export interface ArenaState {
   updateParticipantPersona: (id: string, persona: Persona) => void;
   updateParticipantModel: (id: string, model: ModelInfo) => void;
   setPrompt: (prompt: string) => void;
+  addDocument: (document: AttachedDocument) => void;
+  removeDocument: (id: string) => void;
   setRoundCount: (count: number) => void;
   setOption: <K extends keyof ConsensusOptions>(key: K, value: ConsensusOptions[K]) => void;
 

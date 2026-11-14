@@ -11,6 +11,7 @@ import type { ConsensusEvent, ConsensusOptions, EngineType, Participant } from "
 import { runConsensus } from "@/lib/consensus-engine";
 import { composeCustomPersona, getPersona, sanitizeCustomPersonaSpec } from "@/lib/personas";
 import { findResolvedModel } from "@/lib/providers";
+import { documentContext, validateDocuments } from "@/lib/documents";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -60,6 +61,7 @@ if (!globalAny[CLEANUP_KEY]) {
 
 interface LooseRequestBody {
   prompt?: unknown;
+  documents?: unknown;
   participants?: unknown;
   rounds?: unknown; // legacy
   options?: unknown;
@@ -161,6 +163,16 @@ export async function POST(request: Request) {
   }
 
   const options = parseOptions(body);
+  let attachedDocuments;
+  try {
+    attachedDocuments = validateDocuments(body.documents);
+  } catch (e) {
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Invalid documents" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+  const fullPrompt = (body.prompt as string) + documentContext(attachedDocuments);
 
   // ── Rebuild participants server-side ─────────────────────
   // Never trust client-supplied systemPrompts or arbitrary model IDs.
@@ -248,7 +260,7 @@ export async function POST(request: Request) {
 
       try {
         await runConsensus(
-          body.prompt as string,
+          fullPrompt,
           validatedParticipants,
           options,
           emit,
