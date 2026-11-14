@@ -127,6 +127,10 @@ export function snapshotToJSON(snapshot: SessionSnapshot): string {
  * otherwise.
  */
 export async function encodeSnapshotToHash(snapshot: SessionSnapshot): Promise<string> {
+  if (snapshot.documents?.length)
+    throw Error(
+      "Permalinks are disabled for document sessions to protect confidential source text",
+    );
   const json = JSON.stringify(snapshot);
   const bytes = new TextEncoder().encode(json);
 

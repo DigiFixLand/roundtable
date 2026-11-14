@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clearHistoryDb, listRunsDb, saveRunDb } from "@/lib/server/history-db";
 import type { SaveRunExtras } from "@/lib/history";
 import type { SessionSnapshot } from "@/lib/types";
+import { validateDocuments } from "@/lib/documents";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
   const raw = body as { snapshot?: unknown; extras?: unknown };
   if (!validSnapshot(raw?.snapshot)) {
     return NextResponse.json({ error: "Invalid session snapshot" }, { status: 400 });
+  }
+  try {
+    validateDocuments(raw.snapshot.documents);
+  } catch {
+    return NextResponse.json({ error: "Invalid document context" }, { status: 400 });
   }
   const extras = safeExtras(raw.extras);
   const entry = saveRunDb(raw.snapshot, extras);

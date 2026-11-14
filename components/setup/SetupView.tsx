@@ -14,6 +14,7 @@ import GettingStarted from "./GettingStarted";
 import PanelEditor from "./PanelEditor";
 import ProtocolPicker from "./ProtocolPicker";
 import QuestionEditor from "./QuestionEditor";
+import DocumentUploader from "./DocumentUploader";
 
 export interface SetupViewProps {
   /** Start a single run (page's run handler). */
@@ -50,6 +51,7 @@ export default function SetupView({
       </header>
       {showGettingStarted && <GettingStarted />}
       <QuestionEditor onSubmit={submitFromKeyboard} />
+      <DocumentUploader />
       <PanelEditor />
       <ProtocolPicker />
       <EstimateBar onRun={onRun} onSweep={onSweep} onCancel={onCancel} />

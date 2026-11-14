@@ -49,6 +49,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
   modelsLoading: true,
   participants: [],
   prompt: "",
+  documents: [],
   options: { ...DEFAULT_OPTIONS },
 
   isRunning: false,
@@ -130,6 +131,8 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
     })),
 
   setPrompt: (prompt) => set({ prompt }),
+  addDocument: (document) => set((s) => ({ documents: [...s.documents, document] })),
+  removeDocument: (id) => set((s) => ({ documents: s.documents.filter((d) => d.id !== id) })),
 
   setRoundCount: (count) =>
     set((s) => ({
@@ -423,6 +426,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
 
     set({
       prompt: snapshot.prompt,
+      documents: snapshot.documents ?? [],
       participants: snapshot.participants,
       // Opening a Compare engines row keeps the user's Setup configuration.
       ...(opts?.keepOptions ? {} : { options: snapshot.options }),
@@ -462,6 +466,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
     return {
       v: 1,
       prompt: s.prompt,
+      documents: s.documents,
       engine: options.engine,
       options,
       participants: s.participants,

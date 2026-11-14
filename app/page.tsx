@@ -17,7 +17,11 @@ import AppShell from "@/components/AppShell";
 import SetupView from "@/components/setup/SetupView";
 import RunView from "@/components/run/RunView";
 import HistoryView from "@/components/history/HistoryView";
-import { persistCompletedRun, useHistory, type HistoryEntry } from "@/components/history/useHistory";
+import {
+  persistCompletedRun,
+  useHistory,
+  type HistoryEntry,
+} from "@/components/history/useHistory";
 import { optionsForEngine } from "@/lib/engine-rules";
 import { getRunBlocker } from "@/lib/run-blocker";
 import { engineLabel } from "@/lib/score-label";
@@ -269,6 +273,7 @@ async function runOneEngine(engineOverride?: EngineType): Promise<RunOutcome> {
   const controller = state.startConsensus(engine);
   const body: ConsensusRequest = {
     prompt: state.prompt.trim(),
+    ...(state.documents.length ? { documents: state.documents } : {}),
     participants: state.participants,
     options: optionsForEngine(state.options, engine),
   };
