@@ -44,7 +44,10 @@ export async function extractDocument(
   const format = match?.[1]?.toLowerCase() as DocumentFormat | undefined;
   if (!format || !["pdf", "docx", "txt", "md"].includes(format))
     throw Error("Use a PDF, DOCX, TXT or MD file");
-  if (!data.length || data.byteLength > MAX_DOCUMENT_BYTES)
+  // pdf.js may transfer/detach the input Uint8Array while parsing, making its
+  // length 0 afterwards. Capture the upload size before giving it to PDFParse.
+  const sizeBytes = data.byteLength;
+  if (!sizeBytes || sizeBytes > MAX_DOCUMENT_BYTES)
     throw Error("File is empty or larger than 8 MB");
   let pages: DocumentPage[] = [];
   if (format === "pdf") {
@@ -93,5 +96,5 @@ export async function extractDocument(
   const charCount = pages.reduce((n, p) => n + p.text.length, 0);
   if (charCount > MAX_DOCUMENT_CHARS) throw Error("Extracted text exceeds 120,000 characters");
   if (pages.some((p) => p.text.length > 20_000)) throw Error("Document contains an oversized page");
-  return { id: randomUUID(), name, format, sizeBytes: data.length, pages, charCount };
+  return { id: randomUUID(), name, format, sizeBytes, pages, charCount };
 }
