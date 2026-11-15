@@ -71,7 +71,11 @@ export default function EstimateBar({ onRun, onSweep, onCancel, className }: Est
   );
   const estimate = useMemo(
     () =>
-      estimateRun(participants, optionsForEngine(estimateOptions, options.engine), sourceLength),
+      estimateRun(
+        participants,
+        optionsForEngine(estimateOptions, estimateOptions.engine),
+        sourceLength,
+      ),
     [participants, estimateOptions, sourceLength],
   );
   const sweepEstimate = useMemo(
