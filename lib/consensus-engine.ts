@@ -272,8 +272,7 @@ export function parseDecisionRecord(text: string): DecisionRecord {
 
   return {
     consensus: extractJudgeSection(text, "Consensus") || legacyMajority,
-    disagreements:
-      disagreements || [legacyMinority, legacyUnresolved].filter(Boolean).join("\n\n"),
+    disagreements: disagreements || [legacyMinority, legacyUnresolved].filter(Boolean).join("\n\n"),
     uniqueInsights: extractJudgeSection(text, "Unique Insights"),
     recommendedDecision:
       extractJudgeSection(text, "Recommended Answer / Decision") || legacyMajority,
@@ -451,6 +450,11 @@ async function streamParticipant(
       }
 
       if (capturedError) throw capturedError;
+      if (!fullContent.trim()) {
+        throw new Error(
+          "Model returned no final answer. Thinking-only models may exhaust the output limit; select an Instruct model.",
+        );
+      }
 
       const rawUsage = await extractUsage(awaited as { usage?: unknown });
       if (rawUsage) {
