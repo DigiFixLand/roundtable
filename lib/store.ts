@@ -222,6 +222,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
     usage,
     durationMs,
     error,
+    quality,
   ) =>
     set((s) => {
       const nextUsageByParticipant = { ...s.usageByParticipant };
@@ -248,6 +249,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
                     durationMs,
                     usage,
                     error,
+                    quality,
                   },
                 ],
               }

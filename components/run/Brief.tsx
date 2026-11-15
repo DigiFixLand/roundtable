@@ -14,6 +14,7 @@ import JudgeCard from "../JudgeCard";
 import ClaimsPanel from "../ClaimsPanel";
 import { BriefSection, MutedNote } from "./BriefSection";
 import WhoMoved from "./WhoMoved";
+import QualityGateSummary from "./QualityGateSummary";
 import { completedRounds, findResponseTarget, type JumpTarget } from "./navigation";
 
 export interface BriefProps {
@@ -97,6 +98,7 @@ export default function Brief({ onJump }: BriefProps) {
   return (
     <div className="space-y-4">
       <ScoreSummary />
+      <QualityGateSummary />
       {judgeBlock}
       {claimsBlock}
       {(!failed || rounds.length > 0) && <WhoMoved />}
@@ -202,5 +204,13 @@ function ScoreSummary() {
     );
   }
 
-  return <BriefSection title="Consensus score">{body}</BriefSection>;
+  return (
+    <BriefSection title="Confidence alignment (not factual consensus)">
+      {body}
+      <p className="mt-2 text-[13px] text-fg-muted">
+        This is derived from model-reported confidence and spread, not a verification of agreement
+        about facts or decisions.
+      </p>
+    </BriefSection>
+  );
 }

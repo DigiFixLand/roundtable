@@ -25,33 +25,36 @@ export const SCORE_EXPLAINER =
   "Each participant ends every answer with a self-reported confidence (0–100). " +
   "A round's score is the average confidence minus half the spread (standard deviation) " +
   "between participants, clamped to 0–100, so high confidence only scores well when " +
-  "everyone is close. Errored answers are ignored, and in Red team rounds the attacker's " +
+  "everyone is close. Errored or quality-rejected answers are ignored. This is not factual claim agreement. In Red team rounds the attacker's " +
   "confidence is left out.";
 
 const BANDS: Array<{ min: number } & ScoreLabel> = [
   {
     min: 80,
-    label: "Strong agreement",
+    label: "High confidence alignment",
     tone: "success",
-    description: "Participants are confident and close together.",
+    description:
+      "Self-reported confidence values are high and similar; actual claims may still conflict.",
   },
   {
     min: 60,
-    label: "Broad agreement with reservations",
+    label: "Moderate confidence alignment",
     tone: "info",
-    description: "Most participants lean the same way, with some hedging or a dissenter.",
+    description: "Confidence values are moderately aligned; this is not a claim-level consensus.",
   },
   {
     min: 40,
-    label: "Split",
+    label: "Mixed confidence",
     tone: "warning",
-    description: "Confidence is middling or spread out; read the minority positions.",
+    description:
+      "Reported confidence is middling or spread; read the actual decisions and evidence.",
   },
   {
     min: Number.NEGATIVE_INFINITY,
-    label: "Deep disagreement",
+    label: "Low confidence alignment",
     tone: "danger",
-    description: "Low or widely scattered confidence; there is no real consensus.",
+    description:
+      "Reported confidence is low or far apart; disagreement must be evaluated from claims.",
   },
 ];
 

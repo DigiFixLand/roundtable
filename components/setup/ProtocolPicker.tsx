@@ -111,6 +111,21 @@ export default function ProtocolPicker({ className }: ProtocolPickerProps) {
     }
   };
 
+  const applyDecisionReview = () => {
+    const local = availableModels.filter((model) => model.accessClass === "local");
+    const chairman = local.find((model) => model.id === "ollama:gemma3:4b") ?? local[0];
+    setOption("engine", "cvp");
+    setRoundCount(3);
+    setOption("blindFirstRound", true);
+    setOption("randomizeOrder", true);
+    setOption("earlyStop", false);
+    setOption("privacyMode", "local-only");
+    setOption("costMode", "free-only");
+    setOption("extractClaimsEnabled", true);
+    setOption("judgeEnabled", !!chairman);
+    setOption("judgeModelId", chairman?.id);
+  };
+
   const cap = options.costCapUSD;
   const summary = [
     usesRounds ? `${rounds} ${rounds === 1 ? "round" : "rounds"}` : "1 round",
@@ -175,6 +190,16 @@ export default function ProtocolPicker({ className }: ProtocolPickerProps) {
             </label>
           );
         })}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-border px-3 py-3">
+        <Button size="sm" onClick={applyDecisionReview} disabled={isRunning}>
+          Configure 3-round decision review
+        </Button>
+        <p className="text-[13px] text-fg-muted">
+          Independent analysis → cross-examination → revised answer; local Chairman and claim
+          checks. More time and CPU than Blind jury.
+        </p>
       </div>
 
       {engine === "blind-jury" && !options.judgeEnabled && (

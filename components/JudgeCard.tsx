@@ -6,7 +6,7 @@
 // into the closest Phase-2 sections without rewriting their stored evidence.
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useArenaStore } from "@/lib/store";
 import { stripJudgeConfidence } from "@/lib/format";
 import type { DecisionRecord, JudgeResult } from "@/lib/types";
@@ -70,6 +70,25 @@ export default function JudgeCard() {
         ) : undefined
       }
     >
+      {judge?.decisionStatus === "pending" && (
+        <div role="alert" className="rounded-lg border border-warning/50 p-3 text-sm text-warning">
+          <span className="inline-flex items-center gap-2 font-semibold">
+            <AlertTriangle aria-hidden className="h-4 w-4" />
+            Decision pending — Chairman record incomplete
+          </span>
+          <p className="mt-1">
+            No approved implementation decision was issued. Review the full transcript and source
+            evidence.
+          </p>
+          {judge.decisionIssues?.length ? (
+            <ul className="mt-2 list-inside list-disc">
+              {judge.decisionIssues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      )}
       {structured && record ? (
         <>
           <div className="space-y-4">

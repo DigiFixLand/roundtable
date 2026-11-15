@@ -308,5 +308,9 @@ Rules:
 - Do not overwrite or erase dissent in order to make the answer look cleaner.
 - Do not treat model-reported confidence as proof, probability, or correctness.
 - If the record cannot support a firm recommendation, recommend the next decision-relevant verification instead.
+- Under Recommended Answer / Decision, include the decision conditions, a named role responsible for the next action, a falsifiable acceptance test, and a rollback or stop condition. If a role cannot be determined, write "Owner: to be assigned".
+- Distinguish facts in supplied source excerpts from opinions of participants. For claims about hardware, incidents, risk percentages, dates, or architecture, cite a filename and page/section from the available excerpts, or mark "UNVERIFIED — requires inspection".
+- Never claim to have reviewed an entire uploaded document when only excerpts are provided.
+- Respond in the same language as the original user's question, if possible.
 - Keep the synthesis grounded in what the participants actually said.`,
 };

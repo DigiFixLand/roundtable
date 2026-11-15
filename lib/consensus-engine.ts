@@ -32,6 +32,12 @@ import type {
 } from "./types";
 import { findResolvedModel } from "./providers";
 import { JUDGE_PERSONA } from "./personas";
+import {
+  assessResponseQuality,
+  boundedDebateContext,
+  compactStatement,
+  EVIDENCE_NOTE,
+} from "./quality-gate";
 import { addUsage, estimateCost, estimateUsageFromText, ZERO_USAGE } from "./pricing";
 
 const MAX_OUTPUT_TOKENS = 1500;
@@ -63,7 +69,9 @@ function getRoundMeta(
   totalRounds: number,
 ): { type: RoundType; label: string } {
   if (roundNumber === 1) return { type: "initial-analysis", label: "Initial Analysis" };
-  if (roundNumber === 2) return { type: "counterarguments", label: "Counterarguments" };
+  if (roundNumber === 2) return { type: "counterarguments", label: "Cross-examination" };
+  if (roundNumber === 3 && totalRounds === 3)
+    return { type: "synthesis", label: "Revised Position & Evidence" };
   if (roundNumber === 3) return { type: "evidence-assessment", label: "Evidence Assessment" };
   return {
     type: "synthesis",
@@ -87,25 +95,24 @@ function buildRoundSystemPrompt(
     "initial-analysis": `This is Round ${roundNumber}/${totalRounds}: INITIAL ANALYSIS.
 Provide your initial analysis of the prompt. Share your perspective, key observations, and preliminary assessment. State your confidence level (0-100) at the end.`,
     counterarguments: `This is Round ${roundNumber}/${totalRounds}: COUNTERARGUMENTS.
-Review the initial analyses from all participants below. Identify weaknesses, biases, and blind spots. Offer substantive counterarguments. Challenge assumptions. State your updated confidence level (0-100) at the end.`,
+Review the initial analyses from the other participants below. Identify at least one specific, falsifiable weakness and name the participant whose claim you challenge. Quote or paraphrase the contested claim accurately. Name what evidence or test would resolve the dispute; do NOT merely repeat your original answer. State your updated confidence level (0-100) at the end.`,
     "evidence-assessment": `This is Round ${roundNumber}/${totalRounds}: EVIDENCE ASSESSMENT.
 Evaluate the strength of evidence and reasoning presented so far. Distinguish well-supported claims from speculation. Identify areas where consensus is forming and where disagreement remains substantive. State your confidence level (0-100) at the end.`,
     synthesis: `This is Round ${roundNumber}/${totalRounds}: ${roundNumber === totalRounds ? "FINAL SYNTHESIS" : "SYNTHESIS & REFINEMENT"}.
-Synthesize the discussion so far into a coherent assessment. Acknowledge remaining uncertainties. ${roundNumber === totalRounds ? "Provide your final, considered position." : "Refine your position based on the strongest arguments presented."} State your final confidence level (0-100) at the end.`,
+Synthesize the earlier objections into a revised recommendation. State what changed after cross-examination, the strongest unresolved objection, an owner/role, an observable acceptance test and a rollback or stop condition. Do not claim that unsupported specifics are facts. ${roundNumber === totalRounds ? "Provide your final, considered position." : "Refine your position based on the strongest arguments presented."} State your final confidence level (0-100) at the end.`,
   };
 
-  const previousContext =
-    previousResponses.length > 0
-      ? `\n\n--- PREVIOUS ROUND RESPONSES ---\n${previousResponses
-          .map(
-            (r) => `[Participant ${r.participantId} | Confidence: ${r.confidence}%]\n${r.content}`,
-          )
-          .join("\n\n---\n\n")}\n--- END PREVIOUS RESPONSES ---`
-      : "";
+  // Previous rounds must fit in the limited local-model context window.
+  // Exclude rejected responses and explicitly mark the excerpts as partial.
+  const previousContext = previousResponses.some((r) => !r.error)
+    ? `\n\n--- PRIOR ANSWERS (BOUNDED EXCERPTS — NOT COMPLETE TRANSCRIPT) ---\n${boundedDebateContext(previousResponses)}\n--- END PRIOR ANSWERS ---`
+    : "";
 
   return `${persona}
 
 ${roundInstructions[roundType]}${previousContext}
+
+EVIDENCE RULES: The primary document may be only selected excerpts. For factual claims cite the filename and page/section from the provided excerpts; never invent statistics, hardware specifications, incident timelines or citations. Mark unsupported assertions UNVERIFIED. Reply in the language of the user's question.
 
 IMPORTANT: End your response with a line in exactly this format:
 CONFIDENCE: [number 0-100]`;
@@ -232,7 +239,7 @@ function buildJudgeContext(finalResponses: RoundResponse[], participants: Partic
     const label = p
       ? `${p.persona.name} (${p.modelInfo.providerName}/${p.modelInfo.modelId})`
       : r.participantId;
-    const body = r.content.replace(/\nCONFIDENCE:\s*\d+\s*$/i, "").trim();
+    const body = compactStatement(r.content, 900);
     return `### ${label} — self-reported confidence ${r.confidence}%\n${body}`;
   });
   return `Below are the final-round responses from every participant. Synthesize them per your instructions.\n\n${blocks.join("\n\n---\n\n")}`;
@@ -283,7 +290,7 @@ export function parseDecisionRecord(text: string): DecisionRecord {
 // ── Scoring ────────────────────────────────────────────────
 
 function calculateConsensusScore(responses: RoundResponse[]): number {
-  const valid = responses.filter((r) => !r.error);
+  const valid = responses.filter((r) => !r.error && r.quality?.verdict !== "rejected");
   if (valid.length === 0) return 0;
   const avg = valid.reduce((sum, r) => sum + r.confidence, 0) / valid.length;
   const variance =
@@ -434,8 +441,8 @@ async function streamParticipant(
         model: provider.chat(resolved.modelId),
         system: systemPrompt,
         prompt: userPrompt,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        temperature: 0.7,
+        maxOutputTokens: resolved.accessClass === "local" ? 1100 : MAX_OUTPUT_TOKENS,
+        temperature: 0.45,
         abortSignal: signal,
         onError: ({ error }: { error: unknown }) => {
           capturedError = error;
@@ -495,9 +502,12 @@ async function streamParticipant(
     }
   }
 
-  // Errored responses have no meaningful self-reported confidence.
-  // Using 0 keeps them out of the consensus score (which filters
-  // `r.error`) and makes the UI render an explicit error badge.
+  // Deterministic quality gate: repetitive/empty output is not a vote.
+  // Terse or uncited content stays visible but is flagged as unverified.
+  const quality = !errorMessage ? assessResponseQuality(fullContent, userPrompt) : undefined;
+  if (quality?.verdict === "rejected") {
+    errorMessage = "Quality Gate: " + quality.issues.join(" ");
+  }
   const confidence = errorMessage ? 0 : extractConfidence(fullContent);
   const durationMs = Date.now() - started;
 
@@ -510,6 +520,7 @@ async function streamParticipant(
     durationMs,
     usage,
     error: errorMessage,
+    quality,
   };
 
   emit({
@@ -521,6 +532,7 @@ async function streamParticipant(
     usage,
     durationMs,
     error: errorMessage,
+    quality,
   });
 
   return response;
@@ -548,12 +560,22 @@ async function runJudge(
 
   emit({ type: "judge-start", modelId: resolved.modelId, providerName: resolved.providerName });
 
-  const context = buildJudgeContext(finalResponses, participants);
+  const validResponses = finalResponses.filter((r) => !r.error);
+  const context = buildJudgeContext(validResponses, participants);
   const system = `${JUDGE_PERSONA.systemPrompt}
 
-The original prompt that was debated was:
+Quality controls: ${validResponses.length} / ${finalResponses.length} final-round answers were valid.
+Invalid answers are EXCLUDED. Do not treat self-reported confidence as agreement.
+${EVIDENCE_NOTE}
+If fewer than two independent models support a recommendation, the decision is PENDING.
+For each practical recommendation list an owner, an observable acceptance test,
+a rollback or stop condition, and primary-source page/section when available.
+Never invent server specifications, risk percentages or operational status.
+Keep the answer in the language of the original question.
+
+Original question and selected source excerpts (PARTIAL where labeled):
 """
-${userPrompt}
+${compactStatement(userPrompt, 5500)}
 """`;
 
   let content = "";
@@ -567,8 +589,8 @@ ${userPrompt}
       model: provider.chat(resolved.modelId),
       system,
       prompt: context,
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      temperature: 0.3,
+      maxOutputTokens: resolved.accessClass === "local" ? 1250 : MAX_OUTPUT_TOKENS,
+      temperature: 0.2,
       abortSignal: signal,
       onError: ({ error }: { error: unknown }) => {
         capturedError = error;
@@ -614,11 +636,55 @@ ${userPrompt}
   }
 
   const decisionRecord = parseDecisionRecord(content);
+  const requiredSections: Array<[keyof DecisionRecord, string]> = [
+    ["consensus", "Consensus"],
+    ["disagreements", "Disagreements"],
+    ["uniqueInsights", "Unique Insights"],
+    ["recommendedDecision", "Recommended Answer / Decision"],
+    ["uncertainty", "Uncertainty"],
+  ];
+  const decisionIssues = requiredSections
+    .filter(([key]) => !decisionRecord[key].trim())
+    .map(([, name]) => `Missing Chairman section: ${name}`);
+  // Do not call a narrative "actionable" without observable acceptance,
+  // responsibility and a stop/rollback criterion.
+  const actionText = decisionRecord.recommendedDecision;
+  if (actionText.trim()) {
+    if (!/(owner|responsible|مسئول|مالک|متولی)/iu.test(actionText))
+      decisionIssues.push("Decision lacks an accountable owner or role.");
+    if (!/(test|verify|validation|acceptance|آزمون|تست|پذیرش|راستی‌آزمایی)/iu.test(actionText))
+      decisionIssues.push("Decision lacks a verifiable acceptance test.");
+    if (!/(rollback|stop|halt|revert|بازگشت|توقف|برگردان|لغو)/iu.test(actionText))
+      decisionIssues.push("Decision lacks rollback or stop conditions.");
+  }
+  if (validResponses.length < 2) decisionIssues.push("Fewer than two valid independent answers.");
+  const independentModels = new Set(
+    validResponses.map(
+      (r) => participants.find((p) => p.id === r.participantId)?.modelInfo.id || r.participantId,
+    ),
+  );
+  if (independentModels.size < 2) decisionIssues.push("Fewer than two distinct model variants.");
+  if (/\[Judge error:/i.test(content)) decisionIssues.push("Chairman provider call failed.");
+  const decisionStatus: "structured" | "pending" = decisionIssues.length ? "pending" : "structured";
+  if (decisionStatus === "pending") {
+    decisionRecord.recommendedDecision =
+      "DECISION PENDING — Chairman output was incomplete or insufficiently supported. " +
+      "Do not act on the generated recommendation until the missing evidence and sections are reviewed.";
+    decisionRecord.uncertainty = [
+      decisionRecord.uncertainty,
+      "Quality gate: " + decisionIssues.join(" "),
+      EVIDENCE_NOTE,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
   const result: JudgeResult = {
     modelId: resolved.modelId,
     providerName: resolved.providerName,
     content,
     decisionRecord,
+    decisionStatus,
+    decisionIssues,
     // Legacy aliases keep old comparisons/permalinks readable while the UI migrates.
     majorityPosition: decisionRecord.consensus,
     minorityPositions: decisionRecord.disagreements,
@@ -891,9 +957,26 @@ async function runClaimExtractor(
       .filter((r) => !r.error)
       .map((r) => [r.participantId, r.content.replace(/\nCONFIDENCE:\s*\d+\s*$/i, "").trim()]),
   );
+  const parsedClaims = errorMessage ? null : extractJSONObject(content);
+  const rawContradictions =
+    parsedClaims && typeof parsedClaims === "object"
+      ? (parsedClaims as { contradictions?: unknown }).contradictions
+      : undefined;
+  if (!errorMessage && !Array.isArray(rawContradictions)) {
+    errorMessage =
+      "Claim extractor returned no valid structured JSON; disagreement status is unknown.";
+  }
   const contradictions = errorMessage
     ? []
     : parseClaimsJSON(content, validIds, contentByParticipant);
+  if (
+    !errorMessage &&
+    Array.isArray(rawContradictions) &&
+    rawContradictions.length > 0 &&
+    contradictions.length === 0
+  ) {
+    errorMessage = "Claim extractor supplied unverified quotes; disagreement status is unknown.";
+  }
   const digest: ClaimDigest = {
     modelId: resolved.modelId,
     providerName: resolved.providerName,

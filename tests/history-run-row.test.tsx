@@ -44,7 +44,7 @@ describe("RunRow", () => {
     });
     expect(within(row).getByText("Debate")).toBeInTheDocument();
     expect(within(row).getByText("80")).toBeInTheDocument();
-    expect(within(row).getByText("Strong agreement")).toBeInTheDocument();
+    expect(within(row).getByText("High confidence alignment")).toBeInTheDocument();
     expect(within(row).getByText("Estimated cost")).toHaveClass("sr-only");
     expect(within(row).getByText("$0.13")).toBeInTheDocument();
     const time = within(row).getByText("5 minutes ago");

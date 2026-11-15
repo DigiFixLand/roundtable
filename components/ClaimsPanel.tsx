@@ -71,7 +71,9 @@ export default function ClaimsPanel({ onJumpToResponse }: ClaimsPanelProps) {
     return (
       <BriefSection title={TITLE} meta={meta}>
         <MutedNote>
-          No substantive contradictions found — participants converged or differed only in degree.
+          No source-verified contradictions were extracted. This does NOT establish agreement; the
+          extractor may miss substantive conflicts. Check the Chairman disagreements and the
+          transcript.
         </MutedNote>
       </BriefSection>
     );

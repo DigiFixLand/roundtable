@@ -45,8 +45,8 @@ describe("CompareRuns", () => {
     expect(engine.b).toHaveTextContent("Blind jury");
 
     const score = row("Final score");
-    expect(score.a).toHaveTextContent("80Strong agreement");
-    expect(score.b).toHaveTextContent("74Broad agreement with reservations");
+    expect(score.a).toHaveTextContent("80High confidence alignment");
+    expect(score.b).toHaveTextContent("74Moderate confidence alignment");
     expect(score.change).toHaveTextContent(`${MINUS}6`);
 
     const judge = row("Recommended decision");

@@ -32,7 +32,7 @@ describe("CompareEngines", () => {
 
     expect(within(cvp).getByRole("rowheader")).toHaveTextContent("Debate (CVP)");
     expect(within(cvp).getByText("80")).toBeInTheDocument();
-    expect(within(cvp).getByText("Strong agreement")).toBeInTheDocument();
+    expect(within(cvp).getByText("High confidence alignment")).toBeInTheDocument();
     const cvpCells = within(cvp)
       .getAllByRole("cell")
       .map((c) => c.textContent);
@@ -44,7 +44,7 @@ describe("CompareEngines", () => {
 
     expect(within(jury).getByRole("rowheader")).toHaveTextContent("Blind jury");
     expect(within(jury).getByText("74")).toBeInTheDocument();
-    expect(within(jury).getByText("Broad agreement with reservations")).toBeInTheDocument();
+    expect(within(jury).getByText("Moderate confidence alignment")).toBeInTheDocument();
     const juryCells = within(jury)
       .getAllByRole("cell")
       .map((c) => c.textContent);

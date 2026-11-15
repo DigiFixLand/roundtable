@@ -128,7 +128,7 @@ describe("HomePage — #rt= permalinks", () => {
     expect(tab(/^Run/)).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Shared run (read-only)")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/early-stage startup/);
-    expect(screen.getByRole("region", { name: "Consensus score" })).toHaveTextContent("80");
+    expect(screen.getByRole("region", { name: "Confidence alignment (not factual consensus)" })).toHaveTextContent("80");
     expect(screen.queryByRole("button", { name: "Re-run" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
     // Nothing was saved or re-run just by viewing.

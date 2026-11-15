@@ -35,7 +35,7 @@ describe("RunView", () => {
     render(<RunView {...props()} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/early-stage startup/);
     expect(
-      within(panel("brief")).getByRole("region", { name: "Consensus score" }),
+      within(panel("brief")).getByRole("region", { name: "Confidence alignment (not factual consensus)" }),
     ).toBeInTheDocument();
     expect(
       within(panel("signals")).getByRole("region", { name: "Confidence trajectory" }),
@@ -51,7 +51,7 @@ describe("RunView", () => {
     ).toBeInTheDocument();
     // Unique anchors: each response id appears once.
     expect(document.querySelectorAll("#r4-p-1")).toHaveLength(1);
-    expect(screen.getAllByRole("region", { name: "Consensus score" })).toHaveLength(1);
+    expect(screen.getAllByRole("region", { name: "Confidence alignment (not factual consensus)" })).toHaveLength(1);
     // No sweep → no compare table.
     expect(screen.queryByRole("region", { name: "Compare engines" })).not.toBeInTheDocument();
   });
