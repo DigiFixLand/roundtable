@@ -430,6 +430,7 @@ function processEvent(event: ConsensusEvent): "complete" | "failed" | null {
         event.usage,
         event.durationMs,
         event.error,
+        event.quality,
       );
       if (event.error) {
         const p = s.participants.find((x) => x.id === event.participantId);

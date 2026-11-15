@@ -109,9 +109,19 @@ export function localEvidenceContext(
     const intro = passages.find((p) => p.sourceIndex === i);
     if (intro) seed.push(intro);
   }
+  // Favor the best excerpt from each page before taking several passages
+  // from one page. This is still a partial, lexical evidence retrieval.
+  const bestPerPage = new Map<string, Passage>();
+  for (const passage of ordered) {
+    const key = `${passage.sourceIndex}:${passage.page}`;
+    if (!bestPerPage.has(key)) bestPerPage.set(key, passage);
+  }
+  const pageCoverage = [...bestPerPage.values()].sort(
+    (a, b) => b.score - a.score || a.sourceIndex - b.sourceIndex || a.page - b.page,
+  );
   const selected: Passage[] = [];
   let consumed = 0;
-  for (const p of [...seed, ...ordered]) {
+  for (const p of [...seed, ...pageCoverage, ...ordered]) {
     if (
       selected.some(
         (s) => s.sourceIndex === p.sourceIndex && s.page === p.page && s.chunk === p.chunk,

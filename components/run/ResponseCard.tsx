@@ -93,11 +93,16 @@ export const ResponseCard = memo(function ResponseCard({
         <div className="flex items-start gap-3 px-4 py-3">
           <AlertCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-sm font-semibold text-danger">Provider error</p>
+            <p className="text-sm font-semibold text-danger">
+              {response.error.startsWith("Quality Gate:")
+                ? "Quality Gate rejected this answer"
+                : "Provider error"}
+            </p>
             <p className="break-words font-mono text-[13px] text-fg">{response.error}</p>
             <p className="text-[13px] text-fg-muted">
-              Check the provider base URL, API key and that the model ID exists upstream. This
-              answer is excluded from the consensus score.
+              {response.error.startsWith("Quality Gate:")
+                ? "The output was incomplete or repetitive and is excluded from the vote and Chairman."
+                : "Check the provider connection. This answer is excluded from the confidence score."}
             </p>
           </div>
         </div>
@@ -119,6 +124,11 @@ export const ResponseCard = memo(function ResponseCard({
           {response.confidence}%
         </Badge>
       </CardHeader>
+      {response.quality?.verdict === "caution" && (
+        <p className="mx-4 mt-3 rounded-lg border border-warning/30 p-2 text-[13px] text-warning">
+          Quality caution: {response.quality.issues.join(" ")}
+        </p>
+      )}
       <div className="prose-rt px-4 py-3">
         <Markdown>{body || "…"}</Markdown>
       </div>

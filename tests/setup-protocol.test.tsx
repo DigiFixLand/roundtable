@@ -92,6 +92,34 @@ describe("ProtocolPicker — engine cards", () => {
     expect(options().rounds).toBe(3);
   });
 
+  it("configures an evidence-driven 3-round local decision review without enabling paid AI", () => {
+    useArenaStore.setState({
+      availableModels: [
+        ...MODELS,
+        {
+          id: "ollama:gemma3:4b",
+          providerId: "ollama",
+          providerName: "Ollama MSI",
+          modelId: "gemma3:4b",
+          accessClass: "local",
+        },
+      ],
+    });
+    render(<ProtocolPicker />);
+    fireEvent.click(screen.getByRole("button", { name: "Configure 3-round decision review" }));
+    expect(options()).toMatchObject({
+      engine: "cvp",
+      rounds: 3,
+      blindFirstRound: true,
+      earlyStop: false,
+      judgeEnabled: true,
+      judgeModelId: "ollama:gemma3:4b",
+      extractClaimsEnabled: true,
+      privacyMode: "local-only",
+      costMode: "free-only",
+    });
+  });
+
   it("nudges Blind jury users to turn on the Chairman", () => {
     render(<ProtocolPicker />);
     fireEvent.click(screen.getByRole("radio", { name: /Blind jury/ }));

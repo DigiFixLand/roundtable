@@ -111,9 +111,9 @@ describe("HomePage — run", () => {
     await waitFor(() => expect(useArenaStore.getState().finalScore).toBe(80));
 
     // Brief: score + label, judge verdict, where they split.
-    const score = screen.getByRole("region", { name: "Consensus score" });
+    const score = screen.getByRole("region", { name: "Confidence alignment (not factual consensus)" });
     expect(score).toHaveTextContent("80");
-    expect(score).toHaveTextContent("Strong agreement");
+    expect(score).toHaveTextContent("High confidence alignment");
     expect(screen.getByRole("region", { name: "Decision Record" })).toHaveTextContent(
       "Majority verdict.",
     );
@@ -170,7 +170,7 @@ describe("HomePage — run", () => {
     expect(s.judge?.majorityPosition).toBe("Majority verdict.");
     expect(s.claims?.contradictions).toHaveLength(1);
     expect(s.tokenTotal.totalTokens).toBe(1800);
-    expect(screen.getByRole("region", { name: "Consensus score" })).toHaveTextContent("Split");
+    expect(screen.getByRole("region", { name: "Confidence alignment (not factual consensus)" })).toHaveTextContent("Mixed confidence");
     expect(screen.getByRole("region", { name: "Confidence-spread flags" })).toHaveTextContent(
       "Timing split",
     );
@@ -356,7 +356,7 @@ describe("HomePage — run", () => {
     expect(screen.getByRole("article", { name: QUESTION })).toBeInTheDocument();
 
     fireEvent.click(tab(/^Run/));
-    expect(screen.getByRole("region", { name: "Consensus score" })).toHaveTextContent("88");
+    expect(screen.getByRole("region", { name: "Confidence alignment (not factual consensus)" })).toHaveTextContent("88");
   });
 
   it("does not open a saved run over a live one", async () => {

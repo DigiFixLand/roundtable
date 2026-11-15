@@ -109,13 +109,13 @@ describe("HomePage — engine sweep", () => {
       "Red team",
     ]);
     expect(rows[0]).toHaveTextContent("82");
-    expect(rows[0]).toHaveTextContent("Strong agreement");
+    expect(rows[0]).toHaveTextContent("High confidence alignment");
     expect(rows[0]).toHaveTextContent("[cvp] Majority verdict.");
     expect(rows[1]).toHaveTextContent("64");
-    expect(rows[1]).toHaveTextContent("Broad agreement with reservations");
+    expect(rows[1]).toHaveTextContent("Moderate confidence alignment");
     expect(rows[1]).toHaveTextContent("[blind-jury] Majority verdict.");
     expect(rows[2]).toHaveTextContent("45");
-    expect(rows[2]).toHaveTextContent("Split");
+    expect(rows[2]).toHaveTextContent("Mixed confidence");
     expect(rows[2]).toHaveTextContent("[adversarial] Majority verdict.");
     expect(screen.getByText("3 of 3 done")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(/^Sweep complete · 3 engines/);
@@ -163,7 +163,7 @@ describe("HomePage — engine sweep", () => {
     expect(within(runHeader()).getByText("Blind jury")).toBeInTheDocument();
     expect(within(runHeader()).queryByText("Engine sweep")).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(/^Complete/);
-    expect(screen.getByRole("region", { name: "Consensus score" })).toHaveTextContent("64");
+    expect(screen.getByRole("region", { name: "Confidence alignment (not factual consensus)" })).toHaveTextContent("64");
     expect(screen.getByRole("region", { name: "Compare engines" })).toBeInTheDocument();
     expect(compareRows()).toHaveLength(3);
     expect(screen.getByText("3 of 3 done")).toBeInTheDocument();

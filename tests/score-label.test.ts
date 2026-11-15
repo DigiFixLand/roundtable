@@ -10,15 +10,15 @@ import type { EngineType, RoundType } from "@/lib/types";
 
 describe("scoreLabel", () => {
   it.each([
-    [100, "Strong agreement", "success"],
-    [80, "Strong agreement", "success"],
-    [79.9, "Broad agreement with reservations", "info"],
-    [60, "Broad agreement with reservations", "info"],
-    [59, "Split", "warning"],
-    [40, "Split", "warning"],
-    [39, "Deep disagreement", "danger"],
-    [0, "Deep disagreement", "danger"],
-    [-5, "Deep disagreement", "danger"],
+    [100, "High confidence alignment", "success"],
+    [80, "High confidence alignment", "success"],
+    [79.9, "Moderate confidence alignment", "info"],
+    [60, "Moderate confidence alignment", "info"],
+    [59, "Mixed confidence", "warning"],
+    [40, "Mixed confidence", "warning"],
+    [39, "Low confidence alignment", "danger"],
+    [0, "Low confidence alignment", "danger"],
+    [-5, "Low confidence alignment", "danger"],
   ])("score %s → %s (%s)", (score, label, tone) => {
     const r = scoreLabel(score);
     expect(r.label).toBe(label);
@@ -37,7 +37,7 @@ describe("scoreLabel", () => {
   it("returns a fresh object each call", () => {
     const a = scoreLabel(90);
     a.label = "mutated";
-    expect(scoreLabel(90).label).toBe("Strong agreement");
+    expect(scoreLabel(90).label).toBe("High confidence alignment");
     const b = scoreLabel(null);
     b.label = "mutated";
     expect(scoreLabel(null).label).toBe("No score yet");

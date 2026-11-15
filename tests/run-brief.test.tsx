@@ -24,9 +24,9 @@ describe("Brief — fixture run (3 participants, 4 rounds, judge, 2 claims)", ()
 
   it("leads with the final score and its plain-language label", () => {
     render(<Brief onJump={noop} />);
-    const score = region("Consensus score");
+    const score = region("Confidence alignment (not factual consensus)");
     expect(within(score).getByText("80")).toBeInTheDocument();
-    expect(within(score).getByText("Strong agreement")).toBeInTheDocument();
+    expect(within(score).getByText("High confidence alignment")).toBeInTheDocument();
     expect(within(score).getByText("Final score after 4 rounds")).toBeInTheDocument();
     // Round-by-round scores.
     const byRound = within(score).getByRole("list", { name: "Score by round" });
@@ -64,13 +64,9 @@ describe("Brief — fixture run (3 participants, 4 rounds, judge, 2 claims)", ()
 
     // Raw legacy synthesis remains one click away for evidence/transparency.
     expect(within(judge).queryByText(/Synthesis Confidence/)).not.toBeInTheDocument();
-    fireEvent.click(
-      within(judge).getByRole("button", { name: "Show full Chairman synthesis" }),
-    );
+    fireEvent.click(within(judge).getByRole("button", { name: "Show full Chairman synthesis" }));
     expect(within(judge).getByText(/Synthesis Confidence/)).toBeInTheDocument();
-    fireEvent.click(
-      within(judge).getByRole("button", { name: "Hide full Chairman synthesis" }),
-    );
+    fireEvent.click(within(judge).getByRole("button", { name: "Hide full Chairman synthesis" }));
     expect(within(judge).queryByText(/Synthesis Confidence/)).not.toBeInTheDocument();
   });
 
@@ -233,9 +229,9 @@ describe("Brief — progressive and edge states", () => {
     store.endRound(2, 64);
     store.startRound(3, "evidence-assessment", "Evidence");
     rerender(<Brief onJump={noop} />);
-    const score = region("Consensus score");
+    const score = region("Confidence alignment (not factual consensus)");
     expect(within(score).getByText("64")).toBeInTheDocument();
-    expect(within(score).getByText("Broad agreement with reservations")).toBeInTheDocument();
+    expect(within(score).getByText("Moderate confidence alignment")).toBeInTheDocument();
     expect(within(score).getByText("So far, after round 2")).toBeInTheDocument();
     expect(within(score).getByText("R1 72")).toBeInTheDocument();
     expect(within(score).getByText("R2 64")).toBeInTheDocument();
@@ -307,7 +303,9 @@ describe("Brief — progressive and edge states", () => {
       claims: { ...FIXTURE_SNAPSHOT.claims!, contradictions: [] },
     });
     render(<Brief onJump={noop} />);
-    expect(screen.getByText(/No substantive contradictions found/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No source-verified contradictions were extracted/),
+    ).toBeInTheDocument();
   });
 
   it("reports a failed run instead of a zero score", () => {
@@ -318,7 +316,7 @@ describe("Brief — progressive and edge states", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("The run failed");
     expect(alert).toHaveTextContent("Cost cap of $0.50 reached");
-    expect(screen.queryByText("Deep disagreement")).not.toBeInTheDocument();
+    expect(screen.queryByText("Low confidence alignment")).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Who moved" })).not.toBeInTheDocument();
   });
 
@@ -333,9 +331,9 @@ describe("Brief — progressive and edge states", () => {
     store.startRound(2, "counterarguments", "Counter");
     store.cancelConsensus();
     render(<Brief onJump={noop} />);
-    const score = region("Consensus score");
+    const score = region("Confidence alignment (not factual consensus)");
     expect(within(score).getByText("38")).toBeInTheDocument();
-    expect(within(score).getByText("Deep disagreement")).toBeInTheDocument();
+    expect(within(score).getByText("Low confidence alignment")).toBeInTheDocument();
     expect(
       within(score).getByText("Run stopped — score after round 1 · converged early after round 1"),
     ).toBeInTheDocument();

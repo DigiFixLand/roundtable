@@ -4,6 +4,7 @@
 
 /** Raw provider config as stored in AI_PROVIDERS env var */
 import type { AttachedDocument } from "./documents";
+import type { QualityAssessment } from "./quality-gate";
 import type { AccessClass, PrivacyMode, CostMode } from "./model-policy";
 
 export interface ProviderConfig {
@@ -114,6 +115,7 @@ export interface RoundResponse {
   usage?: TokenUsage;
   /** If the provider call failed, a short human-readable error (e.g. `Not Found (HTTP 404)`). */
   error?: string;
+  quality?: QualityAssessment;
 }
 
 /** Consensus round metadata */
@@ -174,6 +176,8 @@ export interface JudgeResult {
   minorityPositions: string;
   unresolvedDisputes: string;
   usage?: TokenUsage;
+  decisionStatus?: "structured" | "pending";
+  decisionIssues?: string[];
 }
 
 /**
@@ -252,6 +256,7 @@ export type ConsensusEvent =
       usage?: TokenUsage;
       durationMs: number;
       error?: string;
+      quality?: QualityAssessment;
     }
   | { type: "round-end"; round: number; consensusScore: number }
   | { type: "disagreements"; round: number; disagreements: Disagreement[] }
@@ -412,6 +417,7 @@ export interface ArenaState {
     usage?: TokenUsage,
     durationMs?: number,
     error?: string,
+    quality?: QualityAssessment,
   ) => void;
   startRound: (round: number, type: RoundType, label: string) => void;
   endRound: (round: number, consensusScore: number) => void;
