@@ -19,7 +19,17 @@ const MODELS: ModelInfo[] = [
 beforeEach(() => {
   localStorage.clear();
   useArenaStore.setState(useArenaStore.getInitialState(), true);
-  useArenaStore.setState({ availableModels: MODELS, modelsLoading: false });
+  useArenaStore.setState({
+    availableModels: MODELS,
+    modelsLoading: false,
+    options: {
+      ...useArenaStore.getState().options,
+      engine: "cvp",
+      rounds: 5,
+      privacyMode: "cloud-allowed",
+      costMode: "paid-allowed",
+    },
+  });
 });
 
 function renderView(showGettingStarted = false) {

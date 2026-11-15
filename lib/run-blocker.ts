@@ -13,9 +13,10 @@ export type ReadinessSeat = Pick<Participant, "modelInfo"> &
 export interface RunReadinessInput {
   prompt: string;
   participants: readonly ReadinessSeat[];
-  availableModels: readonly Pick<ModelInfo, "id">[];
+  availableModels: readonly Pick<ModelInfo, "id" | "accessClass">[];
   modelsLoading: boolean;
-  options: Pick<ConsensusOptions, "judgeEnabled" | "judgeModelId">;
+  options: Pick<ConsensusOptions, "judgeEnabled" | "judgeModelId"> &
+    Partial<Pick<ConsensusOptions, "privacyMode" | "costMode">>;
 }
 
 /**
@@ -43,6 +44,16 @@ export function getRunBlocker(s: RunReadinessInput): string | null {
   if (s.options.judgeEnabled) {
     if (!s.options.judgeModelId) return "Pick a judge model or turn the judge off";
     if (!known.has(s.options.judgeModelId)) return "Pick a judge model this server offers";
+  }
+  if (s.options.privacyMode) {
+    const accessById = new Map(s.availableModels.map((m) => [m.id, m.accessClass]));
+    const ids = s.participants.map((p) => p.modelInfo.id);
+    if (s.options.judgeEnabled && s.options.judgeModelId) ids.push(s.options.judgeModelId);
+    const classes = ids.map((id) => accessById.get(id));
+    if (s.options.privacyMode === "local-only" && classes.some((c) => c !== "local"))
+      return "Local only: select local models for every seat and the judge";
+    if (s.options.costMode !== "paid-allowed" && classes.some((c) => c === "paid-cloud" || !c))
+      return "Paid models are locked. Select local or verified free-tier models.";
   }
   return null;
 }

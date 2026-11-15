@@ -12,6 +12,8 @@ import { runConsensus } from "@/lib/consensus-engine";
 import { composeCustomPersona, getPersona, sanitizeCustomPersonaSpec } from "@/lib/personas";
 import { findResolvedModel } from "@/lib/providers";
 import { documentContext, validateDocuments } from "@/lib/documents";
+import { localEvidenceContext } from "@/lib/local-evidence";
+import { enforceModelPolicy, type PolicyModel } from "@/lib/model-policy";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -107,6 +109,13 @@ function parseOptions(body: LooseRequestBody): ConsensusOptions {
     judgeModelId,
     extractClaimsEnabled: parseBool(raw.extractClaimsEnabled, false),
     costCapUSD,
+    privacyMode:
+      raw.privacyMode === "cloud-allowed" || raw.privacyMode === "ask-before-sharing"
+        ? raw.privacyMode
+        : "local-only",
+    costMode: raw.costMode === "paid-allowed" ? "paid-allowed" : "free-only",
+    cloudApproved: raw.cloudApproved === true,
+    paidApproved: raw.paidApproved === true,
   };
 }
 
@@ -172,13 +181,13 @@ export async function POST(request: Request) {
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
-  const fullPrompt = (body.prompt as string) + documentContext(attachedDocuments);
 
   // ── Rebuild participants server-side ─────────────────────
   // Never trust client-supplied systemPrompts or arbitrary model IDs.
   // Re-resolve models and personas from their IDs.
 
   const validatedParticipants: Participant[] = [];
+  const routedModels: PolicyModel[] = [];
   for (const p of body.participants as Array<{
     id?: unknown;
     modelInfo?: { id?: unknown };
@@ -213,6 +222,11 @@ export async function POST(request: Request) {
       persona = getPersona(personaId);
     }
 
+    routedModels.push({
+      accessClass: resolved.accessClass,
+      providerName: resolved.providerName,
+      modelId: resolved.modelId,
+    });
     validatedParticipants.push({
       id: typeof p.id === "string" ? p.id : `p-${validatedParticipants.length + 1}`,
       modelInfo: {
@@ -242,6 +256,46 @@ export async function POST(request: Request) {
       );
     }
   }
+
+  // Fail closed: no paid or cloud call is started before policy validation.
+  if (options.judgeEnabled && options.judgeModelId) {
+    const judgeModel = findResolvedModel(options.judgeModelId);
+    if (judgeModel)
+      routedModels.push({
+        accessClass: judgeModel.accessClass,
+        providerName: judgeModel.providerName,
+        modelId: judgeModel.modelId,
+      });
+  }
+  const policyError = enforceModelPolicy(
+    routedModels,
+    options,
+    process.env.ROUNDTABLE_ALLOW_PAID_AI === "true",
+  );
+  if (policyError)
+    return new Response(JSON.stringify({ error: policyError }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+
+  const allLocal = routedModels.every((m) => m.accessClass === "local");
+  if (allLocal && (body.prompt as string).length > 5500) {
+    return new Response(
+      JSON.stringify({
+        error: "Local model questions must be below 5,500 characters for reliable context.",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+  const fullPrompt =
+    (body.prompt as string) +
+    (allLocal
+      ? localEvidenceContext(
+          body.prompt as string,
+          attachedDocuments,
+          Math.min(6000, 8500 - (body.prompt as string).length),
+        )
+      : documentContext(attachedDocuments));
 
   // ── Stream with abort support ────────────────────────────
 

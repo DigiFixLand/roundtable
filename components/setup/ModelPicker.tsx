@@ -299,6 +299,15 @@ export default function ModelPicker({
                         className={cn("h-4 w-4 shrink-0", !checked && "invisible")}
                       />
                       <span className="min-w-0 flex-1 truncate">{m.modelId}</span>
+                      {m.accessClass && (
+                        <span className="shrink-0 text-xs text-fg-muted">
+                          {m.accessClass === "local"
+                            ? "Local · $0 API"
+                            : m.accessClass === "free-cloud"
+                              ? "Free-tier cloud"
+                              : "Paid · locked"}
+                        </span>
+                      )}
                       {m.preferred && (
                         <span className="inline-flex shrink-0 items-center gap-1 text-[13px] text-fg-muted">
                           <Star aria-hidden className="h-3.5 w-3.5 fill-accent text-accent" />

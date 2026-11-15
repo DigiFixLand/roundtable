@@ -10,6 +10,7 @@
 //                          and sorted to the top. Filters to chat models.
 
 import type { ProviderConfig, ResolvedModel, ModelInfo } from "./types";
+import { classifyModel } from "./model-policy";
 
 const isStrictMode = () => process.env.STRICT_MODELS?.toLowerCase() === "true";
 
@@ -184,6 +185,7 @@ export async function getResolvedModelsAsync(): Promise<
           providerId: provider.id,
           providerName: provider.name,
           modelId,
+          accessClass: classifyModel(provider.id, provider.baseUrl, modelId, provider.billingTier),
           baseUrl: provider.baseUrl,
           apiKey,
           preferred: true,
@@ -203,6 +205,7 @@ export async function getResolvedModelsAsync(): Promise<
           providerId: provider.id,
           providerName: provider.name,
           modelId,
+          accessClass: classifyModel(provider.id, provider.baseUrl, modelId, provider.billingTier),
           baseUrl: provider.baseUrl,
           apiKey,
           preferred: true,
@@ -217,6 +220,7 @@ export async function getResolvedModelsAsync(): Promise<
           providerId: provider.id,
           providerName: provider.name,
           modelId,
+          accessClass: classifyModel(provider.id, provider.baseUrl, modelId, provider.billingTier),
           baseUrl: provider.baseUrl,
           apiKey,
           preferred: false,
@@ -247,6 +251,7 @@ export function getResolvedModels(): ResolvedModel[] {
         providerId: provider.id,
         providerName: provider.name,
         modelId,
+        accessClass: classifyModel(provider.id, provider.baseUrl, modelId, provider.billingTier),
         baseUrl: provider.baseUrl,
         apiKey,
       });
@@ -265,6 +270,7 @@ export async function getModelInfoListAsync(): Promise<ModelInfo[]> {
     providerName: m.providerName,
     modelId: m.modelId,
     preferred: m.preferred,
+    accessClass: m.accessClass,
   }));
 }
 
@@ -291,6 +297,7 @@ export function findResolvedModel(compositeId: string): ResolvedModel | undefine
     providerId: provider.id,
     providerName: provider.name,
     modelId,
+    accessClass: classifyModel(provider.id, provider.baseUrl, modelId, provider.billingTier),
     baseUrl: provider.baseUrl,
     apiKey,
   };

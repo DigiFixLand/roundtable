@@ -27,7 +27,16 @@ const options = () => useArenaStore.getState().options;
 
 beforeEach(() => {
   useArenaStore.setState(useArenaStore.getInitialState(), true);
-  useArenaStore.setState({ availableModels: MODELS, modelsLoading: false });
+  useArenaStore.setState({
+    availableModels: MODELS,
+    modelsLoading: false,
+    options: {
+      ...useArenaStore.getState().options,
+      engine: "cvp",
+      rounds: 5,
+      extractClaimsEnabled: true,
+    },
+  });
 });
 
 /** Render with the Advanced section expanded. */
@@ -202,7 +211,9 @@ describe("ProtocolPicker — advanced", () => {
     expect(options().judgeEnabled).toBe(true);
     // Preferred model not already on the panel.
     expect(options().judgeModelId).toBe("anthropic:claude-sonnet-4");
-    const picker = screen.getByRole("button", { name: "Chairman model Anthropic / claude-sonnet-4" });
+    const picker = screen.getByRole("button", {
+      name: "Chairman model Anthropic / claude-sonnet-4",
+    });
     fireEvent.click(picker);
     fireEvent.click(screen.getByRole("menuitem", { name: /Groq/ }));
     expect(options().judgeModelId).toBe("groq:llama-3.3-70b");

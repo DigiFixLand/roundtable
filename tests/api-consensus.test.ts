@@ -31,7 +31,14 @@ vi.mock("@/lib/providers", () => ({
   findResolvedModel: (id: string) => {
     if (!id) return undefined;
     if (id === "unknown:model") return undefined;
-    return { providerId: "t", providerName: "T", modelId: "m", baseUrl: "http://x", apiKey: "k" };
+    return {
+      providerId: "t",
+      providerName: "T",
+      modelId: "m",
+      baseUrl: "http://x",
+      apiKey: "k",
+      accessClass: "local",
+    };
   },
 }));
 

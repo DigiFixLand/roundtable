@@ -116,11 +116,13 @@ export default function HomePage() {
       toast.error(blocker);
       return;
     }
+    const cloudApproved = confirmCloudForRun(state);
+    if (cloudApproved === null) return;
     clearPermalinkHash();
     state.clearSweep();
     state.setView("run");
     toast.info("Run started — Esc stops it");
-    await runOneEngine(engine);
+    await runOneEngine(engine, cloudApproved);
   }, []);
 
   const handleRunConsensus = useCallback(() => startRun(), [startRun]);
@@ -267,7 +269,26 @@ type RunOutcome = "complete" | "failed" | "aborted";
  * replaces `options.engine` for this request only (the sweep); either way
  * the rounds are raised to the engine's minimum (Red team runs ≥ 3).
  */
-async function runOneEngine(engineOverride?: EngineType): Promise<RunOutcome> {
+function confirmCloudForRun(state: ReturnType<typeof useArenaStore.getState>): boolean | null {
+  if (state.options.privacyMode !== "ask-before-sharing") return false;
+  const judge = state.options.judgeEnabled
+    ? state.availableModels.find((m) => m.id === state.options.judgeModelId)
+    : null;
+  const usesCloud =
+    state.participants.some(
+      (p) => state.availableModels.find((m) => m.id === p.modelInfo.id)?.accessClass !== "local",
+    ) ||
+    (judge !== null && judge !== undefined && judge.accessClass !== "local");
+  if (!usesCloud) return false;
+  return window.confirm(
+    "Send the question and extracted document text to the selected cloud AI providers for this run? Cancel to keep it local.",
+  );
+}
+
+async function runOneEngine(
+  engineOverride?: EngineType,
+  cloudApproved = false,
+): Promise<RunOutcome> {
   const state = useArenaStore.getState();
   const engine = engineOverride ?? state.options.engine;
   const controller = state.startConsensus(engine);
@@ -275,7 +296,10 @@ async function runOneEngine(engineOverride?: EngineType): Promise<RunOutcome> {
     prompt: state.prompt.trim(),
     ...(state.documents.length ? { documents: state.documents } : {}),
     participants: state.participants,
-    options: optionsForEngine(state.options, engine),
+    options: {
+      ...optionsForEngine(state.options, engine),
+      ...(cloudApproved ? { cloudApproved: true } : {}),
+    },
   };
 
   let outcome: RunOutcome | null = null;

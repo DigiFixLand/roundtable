@@ -238,7 +238,7 @@ describe("store — runOptions", () => {
     const s = useArenaStore.getState();
     expect(s.runOptions).toBeNull();
     s.startConsensus();
-    expect(useArenaStore.getState().runOptions).toEqual({ ...DEFAULT_OPTIONS, engine: "cvp" });
+    expect(useArenaStore.getState().runOptions).toEqual(DEFAULT_OPTIONS);
     s.cancelConsensus();
     s.setRoundCount(2);
     s.startConsensus("adversarial");
@@ -248,7 +248,7 @@ describe("store — runOptions", () => {
       engine: "adversarial",
       rounds: 3,
     });
-    expect(useArenaStore.getState().options).toMatchObject({ engine: "cvp", rounds: 2 });
+    expect(useArenaStore.getState().options).toMatchObject({ engine: "blind-jury", rounds: 2 });
   });
 
   it("is not changed by Setup edits while the run streams", () => {
@@ -279,7 +279,10 @@ describe("store — runOptions", () => {
   it("getSnapshot falls back to Setup's options before anything has run", () => {
     const s = useArenaStore.getState();
     s.setRoundCount(2);
-    expect(s.getSnapshot()).toMatchObject({ engine: "cvp", options: { engine: "cvp", rounds: 2 } });
+    expect(s.getSnapshot()).toMatchObject({
+      engine: "blind-jury",
+      options: { engine: "blind-jury", rounds: 2 },
+    });
   });
 
   it("loadSnapshot takes the snapshot's options; keepOptions leaves Setup alone", () => {

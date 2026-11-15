@@ -4,6 +4,7 @@
 
 /** Raw provider config as stored in AI_PROVIDERS env var */
 import type { AttachedDocument } from "./documents";
+import type { AccessClass, PrivacyMode, CostMode } from "./model-policy";
 
 export interface ProviderConfig {
   id: string;
@@ -11,6 +12,7 @@ export interface ProviderConfig {
   baseUrl: string;
   apiKey: string; // "env:VAR_NAME" or literal
   models?: string[]; // optional — if omitted, models are fetched from the provider API
+  billingTier?: "free" | "paid"; // explicit server-controlled free-tier routing
 }
 
 /** A resolved model ready for API calls (never exposed to client) */
@@ -20,6 +22,7 @@ export interface ResolvedModel {
   modelId: string;
   baseUrl: string;
   apiKey: string; // resolved actual key
+  accessClass: AccessClass;
 }
 
 /** Client-safe model info (no secrets) */
@@ -29,6 +32,7 @@ export interface ModelInfo {
   providerName: string;
   modelId: string;
   preferred?: boolean; // true if explicitly listed in AI_PROVIDERS models array
+  accessClass?: AccessClass; // server-generated; missing/unknown is not trusted as free
 }
 
 /** Persona definition */
@@ -228,6 +232,10 @@ export interface ConsensusOptions {
    * after every participant round and after judge / claims passes.
    */
   costCapUSD?: number;
+  privacyMode?: PrivacyMode;
+  costMode?: CostMode;
+  cloudApproved?: boolean; // per-run confirmation, never persisted in defaults
+  paidApproved?: boolean; // per-run explicit opt-in (server must also enable paid)
 }
 
 /** SSE event types streamed from /api/consensus */

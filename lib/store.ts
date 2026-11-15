@@ -20,8 +20,8 @@ import { optionsForEngine } from "./engine-rules";
 let participantCounter = 0;
 
 export const DEFAULT_OPTIONS: ConsensusOptions = {
-  engine: "cvp",
-  rounds: 5,
+  engine: "blind-jury",
+  rounds: 1,
   randomizeOrder: true,
   blindFirstRound: true,
   earlyStop: true,
@@ -30,13 +30,17 @@ export const DEFAULT_OPTIONS: ConsensusOptions = {
   // ON by default — claim-level disagreement extraction is one of the
   // headline features. Cost is +1 LLM call per run. The user can turn
   // it off in the Protocol panel for cost-sensitive runs.
-  extractClaimsEnabled: true,
+  extractClaimsEnabled: false,
+  privacyMode: "local-only",
+  costMode: "free-only",
 };
 
 /** The options a snapshot ran with; `engine` wins over `options.engine` for older snapshots. */
 function snapshotRunOptions(snapshot: SessionSnapshot): ConsensusOptions {
   const engine = snapshot.engine ?? snapshot.options?.engine ?? DEFAULT_OPTIONS.engine;
-  return { ...DEFAULT_OPTIONS, ...snapshot.options, engine };
+  // A saved run must preserve the options it actually used, rather than
+  // retroactively adding free-first defaults to historical snapshots.
+  return { ...snapshot.options, engine };
 }
 
 const freshUsageState = () => ({

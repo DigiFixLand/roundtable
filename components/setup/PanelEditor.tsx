@@ -47,6 +47,8 @@ function suggestPersona(participants: readonly Pick<Participant, "persona">[]): 
 export default function PanelEditor({ className }: PanelEditorProps) {
   const availableModels = useArenaStore((s) => s.availableModels);
   const modelsLoading = useArenaStore((s) => s.modelsLoading);
+  const privacyMode = useArenaStore((s) => s.options.privacyMode ?? "local-only");
+  const costMode = useArenaStore((s) => s.options.costMode ?? "free-only");
   const participants = useArenaStore((s) => s.participants);
   const isRunning = useArenaStore((s) => s.isRunning);
   const addParticipant = useArenaStore((s) => s.addParticipant);
@@ -68,6 +70,17 @@ export default function PanelEditor({ className }: PanelEditorProps) {
   const [pendingPreset, setPendingPreset] = useState<PanelPreset | null>(null);
   const presetTriggerRef = useRef<HTMLButtonElement>(null);
 
+  const eligibleModels = useMemo(
+    () =>
+      availableModels.filter(
+        (m) =>
+          (privacyMode !== "local-only" || m.accessClass === "local") &&
+          (costMode === "paid-allowed" ||
+            m.accessClass === "local" ||
+            m.accessClass === "free-cloud"),
+      ),
+    [availableModels, privacyMode, costMode],
+  );
   const known = useMemo(() => new Set(availableModels.map((m) => m.id)), [availableModels]);
   const hasModels = !modelsLoading && availableModels.length > 0;
   const full = participants.length >= MAX_SEATS;
@@ -75,14 +88,15 @@ export default function PanelEditor({ className }: PanelEditorProps) {
   const newModel =
     pickedModel && known.has(pickedModel.id)
       ? pickedModel
-      : suggestModel(availableModels, participants);
+      : suggestModel(eligibleModels, participants);
   const newPersona =
     pickedPersonaId === "custom" && custom
       ? custom.persona
       : (PERSONAS.find((p) => p.id === pickedPersonaId) ?? suggestPersona(participants));
 
   const applyPresetNow = (preset: PanelPreset) => {
-    const seats = applyPreset(preset, availableModels);
+    const seats = applyPreset(preset, eligibleModels);
+    if (seats.length < 2) return;
     for (const p of useArenaStore.getState().participants) removeParticipant(p.id);
     for (const seat of seats) addParticipant(seat.model, seat.persona);
     setPendingPreset(null);

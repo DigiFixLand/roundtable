@@ -39,7 +39,15 @@ beforeEach(() => {
   useArenaStore.setState({
     participants: SEATS,
     prompt: "Which database should we pick?",
-    options: { ...DEFAULT_OPTIONS, judgeEnabled: true, judgeModelId: MODELS[0].id },
+    options: {
+      ...DEFAULT_OPTIONS,
+      engine: "cvp",
+      rounds: 5,
+      costMode: "paid-allowed",
+      privacyMode: "cloud-allowed",
+      judgeEnabled: true,
+      judgeModelId: MODELS[0].id,
+    },
   });
   localStorage.clear();
   clearHistory();

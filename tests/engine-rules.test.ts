@@ -40,7 +40,13 @@ describe("effectiveRounds", () => {
 });
 
 describe("optionsForEngine", () => {
-  const debate2 = { ...DEFAULT_OPTIONS, rounds: 2, judgeEnabled: true, judgeModelId: "a:b" };
+  const debate2 = {
+    ...DEFAULT_OPTIONS,
+    engine: "cvp" as const,
+    rounds: 2,
+    judgeEnabled: true,
+    judgeModelId: "a:b",
+  };
 
   it("raises Red team's rounds to its minimum and keeps every other option", () => {
     const out = optionsForEngine(debate2, "adversarial");

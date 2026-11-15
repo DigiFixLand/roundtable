@@ -118,11 +118,11 @@ export default function DocumentUploader() {
         </p>
       )}
       <p className="mt-3 text-xs text-fg-muted">
-        Extraction happens on this private RoundTable server. Original files are not saved;
-        extracted text is sent to selected AI providers when you run and saved in private session
-        History for follow-up questions. Files with scanned image-only pages require OCR. PDF
-        charts/images are not yet visually interpreted. Never attach passwords, tokens or customer
-        data.
+        Extraction runs on the private MSI server; original files are not saved. Local 4B models
+        receive only question-relevant excerpts from longer reports, not the entire document. Free
+        cloud models may receive full extracted text if you permit cloud usage. Extracted text is
+        stored in private History after a run. Scanned pages require OCR, and diagrams are not
+        visually interpreted. Do not attach passwords or tokens.
       </p>
     </Card>
   );

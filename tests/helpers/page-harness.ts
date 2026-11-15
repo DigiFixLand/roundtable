@@ -16,8 +16,20 @@ import type {
 } from "@/lib/types";
 
 export const MODELS: ModelInfo[] = [
-  { id: "openai:gpt-4o", providerId: "openai", providerName: "OpenAI", modelId: "gpt-4o" },
-  { id: "grok:grok-3", providerId: "grok", providerName: "Grok", modelId: "grok-3" },
+  {
+    id: "openai:gpt-4o",
+    providerId: "openai",
+    providerName: "OpenAI",
+    modelId: "gpt-4o",
+    accessClass: "local",
+  },
+  {
+    id: "grok:grok-3",
+    providerId: "grok",
+    providerName: "Grok",
+    modelId: "grok-3",
+    accessClass: "local",
+  },
 ];
 
 /** Two seats with fixed ids so events can address them. */
