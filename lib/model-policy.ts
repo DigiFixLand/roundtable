@@ -4,6 +4,15 @@ export type AccessClass = "local" | "free-cloud" | "paid-cloud";
 export type PrivacyMode = "local-only" | "cloud-allowed" | "ask-before-sharing";
 export type CostMode = "free-only" | "paid-allowed";
 
+// Local provider identities correspond to distinct model families on the same trusted
+// MSI Ollama service. They are not independent cloud providers or data centers.
+const TRUSTED_LOCAL_PROVIDER_IDS = new Set([
+  "ollama",
+  "deepseek-local",
+  "phi-local",
+  "llama-local",
+]);
+
 // Only OpenRouter's explicit :free variant is automatically a zero-priced
 // cloud model. Gemini/Groq free tiers depend on the account/project and must
 // never be inferred from a customer-controlled provider label alone.
@@ -21,7 +30,7 @@ export function classifyModel(
     return "paid-cloud";
   }
   if (
-    providerId === "ollama" &&
+    TRUSTED_LOCAL_PROVIDER_IDS.has(providerId) &&
     url.protocol === "http:" &&
     (url.hostname === "127.0.0.1" || url.hostname === "localhost") &&
     url.port === "11434" &&

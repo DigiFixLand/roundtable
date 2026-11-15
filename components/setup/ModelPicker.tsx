@@ -348,6 +348,21 @@ export default function ModelPicker({
               );
             })
           )}
+          <div role="note" className="mx-2 mt-2 border-t border-border px-1 pb-2 pt-3">
+            <p className="text-xs font-semibold text-fg-muted">
+              Other requested AI seats — not connected
+            </p>
+            <p className="mt-1 text-xs text-fg-muted">
+              <strong>Kimi Web</strong>: no verified free automated API; web membership does not
+              cover API calls.
+            </p>
+            <p className="mt-1 text-xs text-fg-muted">
+              <strong>NotebookLM</strong>: official notebook API cannot generate chat answers yet.
+            </p>
+            <p className="mt-1 text-xs text-fg-muted">
+              Only active local or verified $0 API models above can be selected as automatic seats.
+            </p>
+          </div>
         </div>
       </Popover>
     </>
