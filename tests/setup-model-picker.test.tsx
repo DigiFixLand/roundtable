@@ -56,6 +56,18 @@ describe("groupModelsByProvider", () => {
 });
 
 describe("ModelPicker", () => {
+  it("shows requested but unconnected Kimi and NotebookLM without allowing false seats", () => {
+    const onChange = vi.fn();
+    render(<Harness models={[m("ollama", "qwen3:4b-instruct")]} onChange={onChange} />);
+    fireEvent.click(trigger());
+    const catalog = screen.getByRole("note");
+    expect(catalog).toHaveTextContent("Kimi Web");
+    expect(catalog).toHaveTextContent("NotebookLM");
+    expect(catalog).toHaveTextContent("not connected");
+    expect(screen.queryByRole("menuitemradio", { name: /Kimi Web/ })).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("shows a placeholder, then the chosen provider / model", () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);

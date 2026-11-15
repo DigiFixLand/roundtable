@@ -9,7 +9,7 @@ import { PERSONAS } from "./personas";
 import type { ModelInfo, Persona } from "./types";
 
 export interface PanelPreset {
-  id: "economy" | "balanced" | "red-team" | "investor";
+  id: "economy" | "local-diversity" | "balanced" | "red-team" | "investor";
   name: string;
   /** The persona names, joined — shown under the preset name. */
   description: string;
@@ -24,6 +24,13 @@ function preset(id: PanelPreset["id"], name: string, personaIds: string[]): Pane
 
 export const PANEL_PRESETS: PanelPreset[] = [
   preset("economy", "Free-first (2 seats)", ["first-principles", "pessimist"]),
+  preset("local-diversity", "Local free models (5 seats)", [
+    "first-principles",
+    "pessimist",
+    "scientific-skeptic",
+    "devils-advocate",
+    "optimistic-futurist",
+  ]),
   preset("balanced", "Balanced", ["pessimist", "optimistic-futurist", "first-principles"]),
   preset("red-team", "Red team", ["devils-advocate", "scientific-skeptic", "domain-expert"]),
   preset("investor", "Investor lens", ["vc-specialist", "pessimist", "optimistic-futurist"]),

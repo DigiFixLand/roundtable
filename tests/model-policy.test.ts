@@ -18,6 +18,28 @@ describe("Free-first server-side routing", () => {
       "local",
     );
   });
+  it("classifies approved model families as separate trusted loopback local seats", () => {
+    for (const [provider, model] of [
+      ["deepseek-local", "deepseek-r1:7b"],
+      ["phi-local", "phi4-mini:3.8b"],
+      ["llama-local", "llama3.2:3b"],
+    ]) {
+      expect(classifyModel(provider, "http://127.0.0.1:11434/v1", model, undefined)).toBe("local");
+      expect(classifyModel(provider, "https://remote-ai.example/v1", model, undefined)).toBe(
+        "paid-cloud",
+      );
+      expect(classifyModel(provider, "http://127.0.0.1:9999/v1", model, undefined)).toBe(
+        "paid-cloud",
+      );
+    }
+    expect(classifyModel("kimi-local", "http://127.0.0.1:11434/v1", "Kimi-Web", undefined)).toBe(
+      "paid-cloud",
+    );
+    expect(classifyModel("notebooklm", "http://127.0.0.1:11434/v1", "notebooklm", undefined)).toBe(
+      "paid-cloud",
+    );
+  });
+
   it("rejects cloud-through-local, spoofed or non-loopback runtimes", () => {
     expect(classifyModel("ollama", "http://127.0.0.1:11434/v1", "qwen3:4b-cloud", undefined)).toBe(
       "paid-cloud",

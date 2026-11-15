@@ -15,10 +15,18 @@ const balanced = getPreset("balanced")!;
 
 describe("PANEL_PRESETS", () => {
   it("defines economic and classic presets with valid persona ids", () => {
-    expect(PANEL_PRESETS.map((p) => p.id)).toEqual(["economy", "balanced", "red-team", "investor"]);
+    expect(PANEL_PRESETS.map((p) => p.id)).toEqual([
+      "economy",
+      "local-diversity",
+      "balanced",
+      "red-team",
+      "investor",
+    ]);
     const ids = new Set(PERSONAS.map((p) => p.id));
     for (const preset of PANEL_PRESETS) {
-      expect(preset.personaIds).toHaveLength(preset.id === "economy" ? 2 : 3);
+      expect(preset.personaIds).toHaveLength(
+        preset.id === "economy" ? 2 : preset.id === "local-diversity" ? 5 : 3,
+      );
       for (const id of preset.personaIds) expect(ids.has(id)).toBe(true);
       expect(preset.name).toBeTruthy();
       expect(preset.description).toBeTruthy();
@@ -32,6 +40,20 @@ describe("PANEL_PRESETS", () => {
 });
 
 describe("applyPreset", () => {
+  it("spreads five distinct local models across grouped model-family providers", () => {
+    const models = [
+      m("ollama", "qwen3:4b-instruct"),
+      m("ollama", "gemma3:4b"),
+      m("deepseek-local", "deepseek-r1:7b"),
+      m("phi-local", "phi4-mini:3.8b"),
+      m("llama-local", "llama3.2:3b"),
+    ];
+    const seats = applyPreset(getPreset("local-diversity")!, models);
+    expect(seats).toHaveLength(5);
+    expect(new Set(seats.map((s) => s.model.id)).size).toBe(5);
+    expect(seats.some((s) => s.model.modelId === "deepseek-r1:7b")).toBe(true);
+  });
+
   it("returns [] when no models are available", () => {
     expect(applyPreset(balanced, [])).toEqual([]);
   });
