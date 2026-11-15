@@ -14,11 +14,11 @@ const m = (providerId: string, modelId: string, preferred?: boolean): ModelInfo 
 const balanced = getPreset("balanced")!;
 
 describe("PANEL_PRESETS", () => {
-  it("defines the three presets from the brief with valid persona ids", () => {
-    expect(PANEL_PRESETS.map((p) => p.id)).toEqual(["balanced", "red-team", "investor"]);
+  it("defines economic and classic presets with valid persona ids", () => {
+    expect(PANEL_PRESETS.map((p) => p.id)).toEqual(["economy", "balanced", "red-team", "investor"]);
     const ids = new Set(PERSONAS.map((p) => p.id));
     for (const preset of PANEL_PRESETS) {
-      expect(preset.personaIds).toHaveLength(3);
+      expect(preset.personaIds).toHaveLength(preset.id === "economy" ? 2 : 3);
       for (const id of preset.personaIds) expect(ids.has(id)).toBe(true);
       expect(preset.name).toBeTruthy();
       expect(preset.description).toBeTruthy();

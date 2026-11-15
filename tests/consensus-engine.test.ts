@@ -62,7 +62,7 @@ const { runConsensus, shuffle, detectDisagreements, __testing } =
   await import("@/lib/consensus-engine");
 
 function opts(overrides: Partial<ConsensusOptions> = {}): ConsensusOptions {
-  return { ...DEFAULT_OPTIONS, ...overrides };
+  return { ...DEFAULT_OPTIONS, engine: "cvp", rounds: 5, extractClaimsEnabled: true, ...overrides };
 }
 
 const makeParticipant = (id: string, modelId = "test:test-model", personaIdx = 0): Participant => ({

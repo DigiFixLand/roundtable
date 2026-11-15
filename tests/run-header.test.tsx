@@ -27,7 +27,7 @@ describe("RunHeader — status line", () => {
     useArenaStore.setState({
       participants: FIXTURE_SNAPSHOT.participants,
       prompt: FIXTURE_SNAPSHOT.prompt,
-      options: { ...DEFAULT_OPTIONS, rounds: 5 },
+      options: { ...DEFAULT_OPTIONS, engine: "cvp", rounds: 5 },
     });
     const s = useArenaStore.getState();
     s.startConsensus();
@@ -98,7 +98,7 @@ describe("RunHeader — status line", () => {
     expect(screen.getByText("Blind jury")).toBeInTheDocument();
     expect(screen.queryByText("Engine sweep")).not.toBeInTheDocument();
     expect(status()).toHaveTextContent(/^Complete/);
-    expect(useArenaStore.getState().options.engine).toBe("cvp");
+    expect(useArenaStore.getState().options.engine).toBe("blind-jury");
   });
 
   it("when complete: 'Complete · 1m 42s · $0.56' plus export / re-run / new run", () => {

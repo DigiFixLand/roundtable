@@ -11,6 +11,7 @@ const MODELS: ModelInfo[] = [
     providerId: "openai",
     providerName: "OpenAI",
     modelId: "gpt-4o",
+    accessClass: "local",
     preferred: true,
   },
   {
@@ -18,12 +19,14 @@ const MODELS: ModelInfo[] = [
     providerId: "openai",
     providerName: "OpenAI",
     modelId: "gpt-4o-mini",
+    accessClass: "local",
   },
   {
     id: "anthropic:claude-sonnet-4",
     providerId: "anthropic",
     providerName: "Anthropic",
     modelId: "claude-sonnet-4",
+    accessClass: "local",
     preferred: true,
   },
   {
@@ -31,6 +34,7 @@ const MODELS: ModelInfo[] = [
     providerId: "groq",
     providerName: "Groq",
     modelId: "llama-3.3-70b",
+    accessClass: "local",
   },
 ];
 
@@ -168,7 +172,7 @@ describe("PanelEditor — seats", () => {
     const modelTrigger = screen.getByRole("button", { name: "Model OpenAI / gpt-4o" });
     fireEvent.click(modelTrigger);
     fireEvent.click(screen.getByRole("menuitem", { name: /OpenAI/ }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "gpt-4o-mini" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /gpt-4o-mini/ }));
     expect(screen.getByRole("button", { name: "Model OpenAI / gpt-4o-mini" })).toBeInTheDocument();
     // Persona.
     fireEvent.click(screen.getByRole("button", { name: "Persona Risk Analyst" }));

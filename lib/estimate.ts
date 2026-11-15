@@ -68,12 +68,16 @@ export interface RunEstimate {
   exceedsCostCap: boolean;
 }
 
-export type EstimateParticipant = { modelInfo: Pick<ModelInfo, "modelId"> };
+export type EstimateParticipant = {
+  modelInfo: Pick<ModelInfo, "modelId"> & Partial<Pick<ModelInfo, "accessClass">>;
+};
 export type EstimateOptions = Pick<
   ConsensusOptions,
   "engine" | "rounds" | "blindFirstRound" | "earlyStop" | "judgeEnabled"
 > &
-  Partial<Pick<ConsensusOptions, "judgeModelId" | "extractClaimsEnabled" | "costCapUSD">>;
+  Partial<Pick<ConsensusOptions, "judgeModelId" | "extractClaimsEnabled" | "costCapUSD">> & {
+    judgeAccessClass?: ModelInfo["accessClass"];
+  };
 
 interface PlannedCall {
   /** Id passed to the pricing lookup (may be a composite `provider:model`). */
@@ -82,6 +86,7 @@ interface PlannedCall {
   displayId: string;
   input: number;
   output: number;
+  accessClass?: ModelInfo["accessClass"];
 }
 
 interface Plan {
@@ -131,6 +136,7 @@ function planRun(
         displayId: p.modelInfo.modelId,
         input: Math.round(base + contextResponses * perResponse),
         output: outputTokens,
+        accessClass: p.modelInfo.accessClass,
       });
     }
   };
@@ -171,6 +177,7 @@ function planRun(
       displayId: bareModelId(judgeId),
       input: Math.round(base + n * perResponse),
       output: outputTokens,
+      accessClass: options.judgeAccessClass,
     });
     steps += 1;
   }
@@ -181,6 +188,7 @@ function planRun(
       displayId: judgeId ? bareModelId(judgeId) : first,
       input: Math.round(A.systemPromptTokens + n * perResponse),
       output: outputTokens,
+      accessClass: judgeId ? options.judgeAccessClass : participants[0].modelInfo.accessClass,
     });
     steps += 1;
   }
@@ -189,7 +197,14 @@ function planRun(
 }
 
 function planCost(plan: Plan): number {
-  return plan.calls.reduce((sum, c) => sum + estimateCost(c.modelId, c.input, c.output), 0);
+  return plan.calls.reduce(
+    (sum, c) =>
+      sum +
+      (c.accessClass === "local" || c.accessClass === "free-cloud"
+        ? 0
+        : estimateCost(c.modelId, c.input, c.output)),
+    0,
+  );
 }
 
 /**
@@ -228,7 +243,13 @@ export function estimateRun(
   const unpriced = new Set<string>();
   for (const c of high.calls) {
     const p = getModelPricing(c.modelId);
-    if (p.input === 0 && p.output === 0) unpriced.add(c.displayId);
+    if (
+      p.input === 0 &&
+      p.output === 0 &&
+      c.accessClass !== "local" &&
+      c.accessClass !== "free-cloud"
+    )
+      unpriced.add(c.displayId);
   }
 
   const lowCost = planCost(low);
@@ -251,6 +272,7 @@ function formatCost(est: RunEstimate): string {
   const { low, high } = est.estCostUSD;
   const partial = est.unpricedModels.length > 0;
   if (high === 0 && partial) return "cost n/a";
+  if (high === 0 && !partial) return "$0 API";
   if (high < 0.01) return partial ? "<$0.01+" : "<$0.01";
   const lo = low.toFixed(2);
   const hi = high.toFixed(2);

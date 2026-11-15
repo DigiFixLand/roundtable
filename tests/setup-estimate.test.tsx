@@ -25,7 +25,19 @@ function seed({
   models = MODELS,
 }: { seats?: number; prompt?: string; models?: ModelInfo[] } = {}) {
   useArenaStore.setState(useArenaStore.getInitialState(), true);
-  useArenaStore.setState({ availableModels: models, modelsLoading: false, prompt });
+  useArenaStore.setState({
+    availableModels: models,
+    modelsLoading: false,
+    prompt,
+    options: {
+      ...DEFAULT_OPTIONS,
+      engine: "cvp",
+      rounds: 5,
+      privacyMode: "cloud-allowed",
+      costMode: "paid-allowed",
+      extractClaimsEnabled: true,
+    },
+  });
   for (let i = 0; i < seats; i++) {
     useArenaStore.getState().addParticipant(MODELS[i % 2], PERSONAS[i]);
   }

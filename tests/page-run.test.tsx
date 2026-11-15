@@ -39,7 +39,16 @@ beforeEach(() => {
   useArenaStore.setState({
     participants: SEATS,
     prompt: `  ${QUESTION}  `,
-    options: { ...DEFAULT_OPTIONS, judgeEnabled: true, judgeModelId: MODELS[0].id },
+    options: {
+      ...DEFAULT_OPTIONS,
+      engine: "cvp",
+      rounds: 5,
+      costMode: "paid-allowed",
+      privacyMode: "cloud-allowed",
+      judgeEnabled: true,
+      judgeModelId: MODELS[0].id,
+      extractClaimsEnabled: true,
+    },
   });
   localStorage.clear();
   clearHistory();
@@ -79,7 +88,16 @@ describe("HomePage — run", () => {
     expect(server.requests[0]).toEqual({
       prompt: QUESTION,
       participants: SEATS,
-      options: { ...DEFAULT_OPTIONS, judgeEnabled: true, judgeModelId: MODELS[0].id },
+      options: {
+        ...DEFAULT_OPTIONS,
+        engine: "cvp",
+        rounds: 5,
+        costMode: "paid-allowed",
+        privacyMode: "cloud-allowed",
+        judgeEnabled: true,
+        judgeModelId: MODELS[0].id,
+        extractClaimsEnabled: true,
+      },
     });
 
     // Live: round 1 opens and p-1 streams into its card.

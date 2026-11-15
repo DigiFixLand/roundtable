@@ -33,10 +33,24 @@ const fmt = (n: number) => n.toLocaleString("en-US");
 
 export default function EstimateBar({ onRun, onSweep, onCancel, className }: EstimateBarProps) {
   const prompt = useArenaStore((s) => s.prompt);
+  const documents = useArenaStore((s) => s.documents);
+  const documentChars = documents.reduce((n, d) => n + d.charCount, 0);
   const participants = useArenaStore((s) => s.participants);
   const options = useArenaStore((s) => s.options);
   const availableModels = useArenaStore((s) => s.availableModels);
   const modelsLoading = useArenaStore((s) => s.modelsLoading);
+  const allLocal =
+    participants.length > 0 &&
+    participants.every(
+      (p) => availableModels.find((m) => m.id === p.modelInfo.id)?.accessClass === "local",
+    ) &&
+    (!options.judgeEnabled ||
+      availableModels.find((m) => m.id === options.judgeModelId)?.accessClass === "local");
+  // Small local models see a limited excerpt, not the full document.
+  const documentInputChars = allLocal
+    ? Math.min(documentChars, Math.max(0, Math.min(6000, 8500 - prompt.length)))
+    : documentChars;
+  const sourceLength = prompt.length + documentInputChars;
   const isRunning = useArenaStore((s) => s.isRunning);
   const currentRound = useArenaStore((s) => s.currentRound);
   const runOptions = useArenaStore((s) => s.runOptions);
@@ -48,13 +62,21 @@ export default function EstimateBar({ onRun, onSweep, onCancel, className }: Est
   const reasonId = `estimate-reason-${uid}`;
 
   // Estimate what the page will send: the rounds raised to the engine's minimum.
+  const estimateOptions = useMemo(
+    () => ({
+      ...options,
+      judgeAccessClass: availableModels.find((m) => m.id === options.judgeModelId)?.accessClass,
+    }),
+    [options, availableModels],
+  );
   const estimate = useMemo(
-    () => estimateRun(participants, optionsForEngine(options, options.engine), prompt.length),
-    [participants, options, prompt.length],
+    () =>
+      estimateRun(participants, optionsForEngine(estimateOptions, options.engine), sourceLength),
+    [participants, estimateOptions, sourceLength],
   );
   const sweepEstimate = useMemo(
-    () => estimateSweep(participants, options, prompt.length),
-    [participants, options, prompt.length],
+    () => estimateSweep(participants, estimateOptions, sourceLength),
+    [participants, estimateOptions, sourceLength],
   );
 
   const blocker = getRunBlocker({ prompt, participants, availableModels, modelsLoading, options });
@@ -73,6 +95,13 @@ export default function EstimateBar({ onRun, onSweep, onCancel, className }: Est
         {fmt(A.maxOutputTokens)}) and ~{A.secondsPerCall} s per call.
       </span>
       <span>Later rounds re-read earlier answers, so they cost more.</span>
+      {documents.length > 0 && (
+        <span>
+          {allLocal ? "Local excerpt selection: " : "Includes "}
+          {documentInputChars.toLocaleString()} of {documentChars.toLocaleString()} extracted
+          document characters estimated. Token counts remain approximate.
+        </span>
+      )}
       {estimate.minRounds !== estimate.maxRounds && (
         <span>
           Early stop may end the debate after round {estimate.minRounds}; the low figure assumes it
@@ -157,9 +186,9 @@ export default function EstimateBar({ onRun, onSweep, onCancel, className }: Est
               <Button
                 variant="secondary"
                 onClick={onSweep}
-                disabled={!!blocker}
+                disabled={!!blocker || options.costMode !== "paid-allowed"}
                 aria-describedby={blocker ? reasonId : undefined}
-                title="Runs Debate, Blind jury and Red team one after another"
+                title="Multi-engine sweep locked in free-first mode to avoid repeated large documents"
                 className="flex-1 sm:flex-none"
               >
                 Run all three engines
