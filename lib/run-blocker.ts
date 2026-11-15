@@ -5,6 +5,7 @@
 import { MAX_PROMPT_LENGTH, MAX_SEATS, MIN_SEATS } from "./limits";
 import { sanitizeCustomPersonaSpec } from "./personas";
 import type { ConsensusOptions, ModelInfo, Participant } from "./types";
+import type { AttachedDocument } from "./documents";
 
 /** A seat as the blocker needs it: the model, and the persona when it may be custom. */
 export type ReadinessSeat = Pick<Participant, "modelInfo"> &
@@ -12,11 +13,17 @@ export type ReadinessSeat = Pick<Participant, "modelInfo"> &
 
 export interface RunReadinessInput {
   prompt: string;
+  documents?: readonly Pick<AttachedDocument, "name">[];
   participants: readonly ReadinessSeat[];
   availableModels: readonly Pick<ModelInfo, "id" | "accessClass">[];
   modelsLoading: boolean;
   options: Pick<ConsensusOptions, "judgeEnabled" | "judgeModelId"> &
-    Partial<Pick<ConsensusOptions, "privacyMode" | "costMode">>;
+    Partial<
+      Pick<
+        ConsensusOptions,
+        "privacyMode" | "costMode" | "decisionAudit" | "engine" | "rounds" | "extractClaimsEnabled"
+      >
+    >;
 }
 
 /**
@@ -44,6 +51,24 @@ export function getRunBlocker(s: RunReadinessInput): string | null {
   if (s.options.judgeEnabled) {
     if (!s.options.judgeModelId) return "Pick a judge model or turn the judge off";
     if (!known.has(s.options.judgeModelId)) return "Pick a judge model this server offers";
+  }
+  if (s.options.decisionAudit) {
+    const ids = s.participants.map((p) => p.modelInfo.id).sort();
+    const required = ["ollama:gemma3:4b", "ollama:qwen3:4b-instruct"].sort();
+    const hasPrimary = s.documents?.some((d) => !d.name.endsWith("-manual-answer.txt"));
+    if (!hasPrimary) return "Decision Audit: attach a primary report";
+    if (ids.length !== 2 || ids.some((id, i) => id !== required[i]))
+      return "Decision Audit: reapply the Qwen + Gemma preset";
+    if (
+      s.options.engine !== "cvp" ||
+      s.options.rounds !== 3 ||
+      !s.options.judgeEnabled ||
+      s.options.judgeModelId !== "ollama:gemma3:4b" ||
+      s.options.extractClaimsEnabled ||
+      s.options.privacyMode !== "local-only" ||
+      s.options.costMode !== "free-only"
+    )
+      return "Decision Audit: reapply the preset to restore safe settings";
   }
   if (s.options.privacyMode) {
     const accessById = new Map(s.availableModels.map((m) => [m.id, m.accessClass]));

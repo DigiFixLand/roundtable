@@ -15,6 +15,7 @@ import ClaimsPanel from "../ClaimsPanel";
 import { BriefSection, MutedNote } from "./BriefSection";
 import WhoMoved from "./WhoMoved";
 import QualityGateSummary from "./QualityGateSummary";
+import DecisionAuditBrief from "./DecisionAuditBrief";
 import { completedRounds, findResponseTarget, type JumpTarget } from "./navigation";
 
 export interface BriefProps {
@@ -99,6 +100,7 @@ export default function Brief({ onJump }: BriefProps) {
     <div className="space-y-4">
       <ScoreSummary />
       <QualityGateSummary />
+      <DecisionAuditBrief />
       {judgeBlock}
       {claimsBlock}
       {(!failed || rounds.length > 0) && <WhoMoved />}

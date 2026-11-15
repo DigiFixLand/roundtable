@@ -48,7 +48,10 @@ export default function EstimateBar({ onRun, onSweep, onCancel, className }: Est
       availableModels.find((m) => m.id === options.judgeModelId)?.accessClass === "local");
   // Small local models see a limited excerpt, not the full document.
   const documentInputChars = allLocal
-    ? Math.min(documentChars, Math.max(0, Math.min(6000, 8500 - prompt.length)))
+    ? Math.min(
+        documentChars,
+        Math.max(0, Math.min(options.decisionAudit ? 3400 : 5200, 7900 - prompt.length)),
+      )
     : documentChars;
   const sourceLength = prompt.length + documentInputChars;
   const isRunning = useArenaStore((s) => s.isRunning);
@@ -83,7 +86,14 @@ export default function EstimateBar({ onRun, onSweep, onCancel, className }: Est
     [participants, estimateOptions, sourceLength],
   );
 
-  const blocker = getRunBlocker({ prompt, participants, availableModels, modelsLoading, options });
+  const blocker = getRunBlocker({
+    prompt,
+    documents,
+    participants,
+    availableModels,
+    modelsLoading,
+    options,
+  });
   const hasSeats = participants.length > 0;
   const cap = options.costCapUSD ?? 0;
 
