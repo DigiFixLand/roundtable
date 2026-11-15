@@ -16,6 +16,7 @@ import ProtocolPicker from "./ProtocolPicker";
 import QuestionEditor from "./QuestionEditor";
 import DocumentUploader from "./DocumentUploader";
 import ManualAnswerImporter from "./ManualAnswerImporter";
+import DecisionAuditSetup from "./DecisionAuditSetup";
 import RoutingPolicyPicker from "./RoutingPolicyPicker";
 
 export interface SetupViewProps {
@@ -55,6 +56,7 @@ export default function SetupView({
       <QuestionEditor onSubmit={submitFromKeyboard} />
       <DocumentUploader />
       <ManualAnswerImporter />
+      <DecisionAuditSetup />
       <RoutingPolicyPicker />
       <PanelEditor />
       <ProtocolPicker />

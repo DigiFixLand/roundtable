@@ -33,6 +33,7 @@ export const DEFAULT_OPTIONS: ConsensusOptions = {
   extractClaimsEnabled: false,
   privacyMode: "local-only",
   costMode: "free-only",
+  decisionAudit: false,
 };
 
 /** The options a snapshot ran with; `engine` wins over `options.engine` for older snapshots. */

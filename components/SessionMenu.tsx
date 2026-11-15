@@ -7,6 +7,8 @@
 import { toast } from "sonner";
 import { FileJson, FileText, Link2, Share2 } from "lucide-react";
 import { exportSnapshot } from "@/lib/export";
+import { decisionAuditToMarkdown } from "@/lib/decision-report";
+import { downloadBlob, snapshotFilename } from "@/lib/session";
 import { encodeSnapshotToHash } from "@/lib/session";
 import { useArenaStore } from "@/lib/store";
 import { Menu, type ButtonSize, type ButtonVariant } from "@/components/ui";
@@ -36,6 +38,7 @@ export default function SessionMenu({
   className,
 }: SessionMenuProps = {}) {
   const getSnapshot = useArenaStore((s) => s.getSnapshot);
+  const decisionAudit = useArenaStore((s) => (s.runOptions ?? s.options).decisionAudit);
 
   const copyPermalink = async () => {
     let url: string;
@@ -70,6 +73,25 @@ export default function SessionMenu({
       align={align}
       className={className}
       items={[
+        ...(decisionAudit
+          ? [
+              {
+                id: "decision-audit-report",
+                label: "Download Decision Audit Report",
+                description: "Draft action plan, evidence gaps and human approval gates",
+                icon: <FileText className="h-4 w-4 text-fg-muted" />,
+                onSelect: () => {
+                  const snapshot = getSnapshot();
+                  downloadBlob(
+                    snapshotFilename(snapshot, "decision-audit.md"),
+                    decisionAuditToMarkdown(snapshot),
+                    "text/markdown;charset=utf-8",
+                  );
+                  toast.success("Decision Audit report downloaded");
+                },
+              },
+            ]
+          : []),
         {
           id: "markdown",
           label: "Download Markdown",

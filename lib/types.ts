@@ -5,6 +5,7 @@
 /** Raw provider config as stored in AI_PROVIDERS env var */
 import type { AttachedDocument } from "./documents";
 import type { QualityAssessment } from "./quality-gate";
+import type { DecisionEvidenceAudit } from "./decision-evidence";
 import type { AccessClass, PrivacyMode, CostMode } from "./model-policy";
 
 export interface ProviderConfig {
@@ -178,6 +179,8 @@ export interface JudgeResult {
   usage?: TokenUsage;
   decisionStatus?: "structured" | "pending";
   decisionIssues?: string[];
+  evidenceReview?: DecisionEvidenceAudit;
+  draftRecommendation?: string;
 }
 
 /**
@@ -240,6 +243,7 @@ export interface ConsensusOptions {
   costMode?: CostMode;
   cloudApproved?: boolean; // per-run confirmation, never persisted in defaults
   paidApproved?: boolean; // per-run explicit opt-in (server must also enable paid)
+  decisionAudit?: boolean; // local source-grounded decision review; never auto authorizes production
 }
 
 /** SSE event types streamed from /api/consensus */

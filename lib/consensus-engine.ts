@@ -31,6 +31,9 @@ import type {
   TokenUsage,
 } from "./types";
 import { findResolvedModel } from "./providers";
+import { planLocalMessages } from "./context-manager";
+import { reviewDecisionEvidence } from "./decision-evidence";
+import type { AttachedDocument } from "./documents";
 import { JUDGE_PERSONA } from "./personas";
 import {
   assessResponseQuality,
@@ -437,11 +440,15 @@ async function streamParticipant(
       // OpenAI-compat shim implements (Anthropic, xAI, Mistral,
       // Groq, Together, …). The default `provider(modelId)` call
       // would target `/v1/responses`, which is OpenAI-only.
+      const planned =
+        resolved.accessClass === "local"
+          ? planLocalMessages(systemPrompt, userPrompt)
+          : { system: systemPrompt, prompt: userPrompt, clipped: false };
       const result = streamText({
         model: provider.chat(resolved.modelId),
-        system: systemPrompt,
-        prompt: userPrompt,
-        maxOutputTokens: resolved.accessClass === "local" ? 1100 : MAX_OUTPUT_TOKENS,
+        system: planned.system,
+        prompt: planned.prompt,
+        maxOutputTokens: resolved.accessClass === "local" ? 800 : MAX_OUTPUT_TOKENS,
         temperature: 0.45,
         abortSignal: signal,
         onError: ({ error }: { error: unknown }) => {
@@ -476,7 +483,11 @@ async function streamParticipant(
           ),
         };
       } else {
-        usage = estimateUsageFromText(resolved.modelId, systemPrompt + userPrompt, fullContent);
+        usage = estimateUsageFromText(
+          resolved.modelId,
+          planned.system + planned.prompt,
+          fullContent,
+        );
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") throw err;
@@ -505,6 +516,13 @@ async function streamParticipant(
   // Deterministic quality gate: repetitive/empty output is not a vote.
   // Terse or uncited content stays visible but is flagged as unverified.
   const quality = !errorMessage ? assessResponseQuality(fullContent, userPrompt) : undefined;
+  if (quality && resolved?.accessClass === "local") {
+    const plan = planLocalMessages(systemPrompt, userPrompt);
+    if (plan.clipped) {
+      quality.issues.push("PARTIAL CONTEXT: Input was trimmed to fit the MSI context window.");
+      if (quality.verdict === "accepted") quality.verdict = "caution";
+    }
+  }
   if (quality?.verdict === "rejected") {
     errorMessage = "Quality Gate: " + quality.issues.join(" ");
   }
@@ -547,6 +565,7 @@ async function runJudge(
   userPrompt: string,
   emit: (event: ConsensusEvent) => void,
   signal?: AbortSignal,
+  auditContext?: { documents: AttachedDocument[]; question: string },
 ): Promise<JudgeResult> {
   const resolved = findResolvedModel(judgeModelId);
   if (!resolved) {
@@ -563,6 +582,8 @@ async function runJudge(
   const validResponses = finalResponses.filter((r) => !r.error);
   const context = buildJudgeContext(validResponses, participants);
   const system = `${JUDGE_PERSONA.systemPrompt}
+
+${auditContext ? "DECISION AUDIT: Critically review the proposed plan. Never invent names, percentages, hardware requirements or timelines. Distinguish evidence from recommendations and highlight conflicting architecture choices. The report is a draft requiring human approval." : ""}
 
 Quality controls: ${validResponses.length} / ${finalResponses.length} final-round answers were valid.
 Invalid answers are EXCLUDED. Do not treat self-reported confidence as agreement.
@@ -585,11 +606,15 @@ ${compactStatement(userPrompt, 5500)}
     let capturedError: unknown = null;
 
     // See streamParticipant for why we use `.chat()` here.
+    const planned =
+      resolved.accessClass === "local"
+        ? planLocalMessages(system, context)
+        : { system, prompt: context, clipped: false };
     const result = streamText({
       model: provider.chat(resolved.modelId),
-      system,
-      prompt: context,
-      maxOutputTokens: resolved.accessClass === "local" ? 1250 : MAX_OUTPUT_TOKENS,
+      system: planned.system,
+      prompt: planned.prompt,
+      maxOutputTokens: resolved.accessClass === "local" ? 950 : MAX_OUTPUT_TOKENS,
       temperature: 0.2,
       abortSignal: signal,
       onError: ({ error }: { error: unknown }) => {
@@ -619,7 +644,7 @@ ${compactStatement(userPrompt, 5500)}
         ),
       };
     } else {
-      usage = estimateUsageFromText(resolved.modelId, system + context, content);
+      usage = estimateUsageFromText(resolved.modelId, planned.system + planned.prompt, content);
     }
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
@@ -665,6 +690,19 @@ ${compactStatement(userPrompt, 5500)}
   );
   if (independentModels.size < 2) decisionIssues.push("Fewer than two distinct model variants.");
   if (/\[Judge error:/i.test(content)) decisionIssues.push("Chairman provider call failed.");
+  const evidenceReview = auditContext
+    ? reviewDecisionEvidence(
+        decisionRecord,
+        auditContext.documents,
+        auditContext.question,
+        validResponses,
+      )
+    : undefined;
+  if (evidenceReview?.status === "blocked-needs-evidence")
+    decisionIssues.push(
+      "Decision Audit: source conflicts or unsupported claims require human review.",
+    );
+  const draftRecommendation = decisionRecord.recommendedDecision;
   const decisionStatus: "structured" | "pending" = decisionIssues.length ? "pending" : "structured";
   if (decisionStatus === "pending") {
     decisionRecord.recommendedDecision =
@@ -685,6 +723,8 @@ ${compactStatement(userPrompt, 5500)}
     decisionRecord,
     decisionStatus,
     decisionIssues,
+    evidenceReview,
+    draftRecommendation: auditContext ? draftRecommendation : undefined,
     // Legacy aliases keep old comparisons/permalinks readable while the UI migrates.
     majorityPosition: decisionRecord.consensus,
     minorityPositions: decisionRecord.disagreements,
@@ -905,11 +945,15 @@ async function runClaimExtractor(
 
   try {
     let capturedError: unknown = null;
+    const planned =
+      resolved.accessClass === "local"
+        ? planLocalMessages(CLAIM_EXTRACTOR_SYSTEM, context)
+        : { system: CLAIM_EXTRACTOR_SYSTEM, prompt: context, clipped: false };
     const result = streamText({
       model: provider.chat(resolved.modelId),
-      system: CLAIM_EXTRACTOR_SYSTEM,
-      prompt: context,
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      system: planned.system,
+      prompt: planned.prompt,
+      maxOutputTokens: resolved.accessClass === "local" ? 700 : MAX_OUTPUT_TOKENS,
       temperature: 0.2,
       abortSignal: signal,
       onError: ({ error }: { error: unknown }) => {
@@ -937,7 +981,7 @@ async function runClaimExtractor(
         ),
       };
     } else {
-      usage = estimateUsageFromText(resolved.modelId, CLAIM_EXTRACTOR_SYSTEM + context, content);
+      usage = estimateUsageFromText(resolved.modelId, planned.system + planned.prompt, content);
     }
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
@@ -1015,6 +1059,7 @@ async function runCVPConsensus(
   options: ConsensusOptions,
   emit: (event: ConsensusEvent) => void,
   signal?: AbortSignal,
+  auditContext?: { documents: AttachedDocument[]; question: string },
 ): Promise<number> {
   const totalRounds = options.rounds;
   const allResponses: RoundResponse[] = [];
@@ -1040,7 +1085,12 @@ async function runCVPConsensus(
       // Parallel, no cross-visibility — each participant only sees an empty previous-context.
       const promises = order.map((participant) => {
         const systemPrompt = buildRoundSystemPrompt(
-          participant.persona.systemPrompt,
+          participant.persona.systemPrompt +
+            (options.decisionAudit
+              ? participant.modelInfo.id.includes("qwen")
+                ? "\nDECISION AUDIT ROLE: Evidence & architecture reviewer. Compare proposed solutions with only provided excerpts. Identify exact page citations or mark UNVERIFIED. Respond in Persian."
+                : "\nDECISION AUDIT ROLE: Independent risk and security challenger. Identify one critical unsupported assumption, failure mode, test and rollback. Respond in Persian."
+              : ""),
           type,
           round,
           totalRounds,
@@ -1061,7 +1111,12 @@ async function runCVPConsensus(
         ];
 
         const systemPrompt = buildRoundSystemPrompt(
-          participant.persona.systemPrompt,
+          participant.persona.systemPrompt +
+            (options.decisionAudit
+              ? participant.modelInfo.id.includes("qwen")
+                ? "\nDECISION AUDIT ROLE: Evidence & architecture reviewer. Compare proposed solutions with only provided excerpts. Identify exact page citations or mark UNVERIFIED. Respond in Persian."
+                : "\nDECISION AUDIT ROLE: Independent risk and security challenger. Identify one critical unsupported assumption, failure mode, test and rollback. Respond in Persian."
+              : ""),
           type,
           round,
           totalRounds,
@@ -1118,6 +1173,7 @@ async function runCVPConsensus(
       prompt,
       emit,
       signal,
+      auditContext,
     );
     runningCostUSD += judge.usage?.estimatedCostUSD ?? 0;
     enforceCostCap(runningCostUSD, options.costCapUSD);
@@ -1424,13 +1480,14 @@ export async function runConsensus(
   options: ConsensusOptions,
   emit: (event: ConsensusEvent) => void,
   signal?: AbortSignal,
+  auditContext?: { documents: AttachedDocument[]; question: string },
 ): Promise<void> {
   if (options.engine === "blind-jury") {
     await runBlindJuryConsensus(prompt, participants, options, emit, signal);
   } else if (options.engine === "adversarial") {
     await runAdversarialConsensus(prompt, participants, options, emit, signal);
   } else {
-    await runCVPConsensus(prompt, participants, options, emit, signal);
+    await runCVPConsensus(prompt, participants, options, emit, signal, auditContext);
   }
 }
 

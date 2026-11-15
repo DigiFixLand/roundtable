@@ -116,6 +116,7 @@ function parseOptions(body: LooseRequestBody): ConsensusOptions {
     costMode: raw.costMode === "paid-allowed" ? "paid-allowed" : "free-only",
     cloudApproved: raw.cloudApproved === true,
     paidApproved: raw.paidApproved === true,
+    decisionAudit: raw.decisionAudit === true,
   };
 }
 
@@ -257,6 +258,36 @@ export async function POST(request: Request) {
     }
   }
 
+  // Decision Audit is an explicit local evidence workflow, not a paid panel.
+  if (options.decisionAudit) {
+    const ids = validatedParticipants.map((p) => p.modelInfo.id).sort();
+    const expected = ["ollama:gemma3:4b", "ollama:qwen3:4b-instruct"].sort();
+    const hasPrimary = attachedDocuments.some((d) => !d.name.endsWith("-manual-answer.txt"));
+    if (
+      ids.length !== 2 ||
+      ids.some((value, i) => value !== expected[i]) ||
+      !hasPrimary ||
+      options.engine !== "cvp" ||
+      options.rounds !== 3 ||
+      !options.judgeEnabled ||
+      options.judgeModelId !== "ollama:gemma3:4b" ||
+      options.extractClaimsEnabled ||
+      options.privacyMode !== "local-only" ||
+      options.costMode !== "free-only"
+    ) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Decision Audit requires a primary document, local Qwen and Gemma, three CVP rounds, Gemma Chairman, and free-only local privacy.",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
   // Fail closed: no paid or cloud call is started before policy validation.
   if (options.judgeEnabled && options.judgeModelId) {
     const judgeModel = findResolvedModel(options.judgeModelId);
@@ -293,7 +324,7 @@ export async function POST(request: Request) {
       ? localReferenceContext(
           body.prompt as string,
           attachedDocuments,
-          Math.min(6000, 8500 - (body.prompt as string).length),
+          Math.min(options.decisionAudit ? 3400 : 5200, 7900 - (body.prompt as string).length),
         )
       : documentContext(attachedDocuments));
 
@@ -319,6 +350,9 @@ export async function POST(request: Request) {
           options,
           emit,
           request.signal, // forward abort signal
+          options.decisionAudit
+            ? { documents: attachedDocuments, question: body.prompt as string }
+            : undefined,
         );
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
