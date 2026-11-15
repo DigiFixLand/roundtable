@@ -58,7 +58,7 @@ export default function DocumentUploader() {
         <div>
           <h2 className="text-base font-semibold text-fg">Attached documents</h2>
           <p className="text-[13px] text-fg-muted">
-            PDF, Word (.docx), TXT, Markdown • Up to 3 files, 8 MB each
+            PDF, Word (.docx), TXT, Markdown • Up to 6 files, 8 MB each
           </p>
         </div>
         <Button

@@ -12,7 +12,7 @@ import { runConsensus } from "@/lib/consensus-engine";
 import { composeCustomPersona, getPersona, sanitizeCustomPersonaSpec } from "@/lib/personas";
 import { findResolvedModel } from "@/lib/providers";
 import { documentContext, validateDocuments } from "@/lib/documents";
-import { localEvidenceContext } from "@/lib/local-evidence";
+import { localReferenceContext } from "@/lib/local-evidence";
 import { enforceModelPolicy, type PolicyModel } from "@/lib/model-policy";
 
 export const dynamic = "force-dynamic";
@@ -290,7 +290,7 @@ export async function POST(request: Request) {
   const fullPrompt =
     (body.prompt as string) +
     (allLocal
-      ? localEvidenceContext(
+      ? localReferenceContext(
           body.prompt as string,
           attachedDocuments,
           Math.min(6000, 8500 - (body.prompt as string).length),

@@ -4,7 +4,9 @@ export type AccessClass = "local" | "free-cloud" | "paid-cloud";
 export type PrivacyMode = "local-only" | "cloud-allowed" | "ask-before-sharing";
 export type CostMode = "free-only" | "paid-allowed";
 
-const TRUSTED_FREE_PROVIDER_IDS = new Set(["gemini-free", "groq-free", "openrouter-free"]);
+// Only OpenRouter's explicit :free variant is automatically a zero-priced
+// cloud model. Gemini/Groq free tiers depend on the account/project and must
+// never be inferred from a customer-controlled provider label alone.
 
 export function classifyModel(
   providerId: string,
@@ -30,8 +32,14 @@ export function classifyModel(
 
   if (
     billingTier === "free" &&
-    TRUSTED_FREE_PROVIDER_IDS.has(providerId) &&
-    (providerId !== "openrouter-free" || modelId.toLowerCase().endsWith(":free"))
+    providerId === "openrouter-free" &&
+    url.protocol === "https:" &&
+    url.hostname === "openrouter.ai" &&
+    !url.port &&
+    !url.username &&
+    !url.password &&
+    (url.pathname === "/api/v1" || url.pathname === "/api/v1/") &&
+    (modelId === "openrouter/free" || /^[a-z0-9][a-z0-9/._-]{1,120}:free$/.test(modelId))
   )
     return "free-cloud";
 

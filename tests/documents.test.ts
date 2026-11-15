@@ -40,8 +40,8 @@ describe("document attachments", () => {
       ]),
     ).toThrow("Duplicate");
   });
-  it("enforces combined document limit and 3-file limit", () => {
-    expect(() => validateDocuments([doc, doc, doc, doc])).toThrow();
+  it("enforces combined document limit and 6-file limit", () => {
+    expect(() => validateDocuments(Array(7).fill(doc))).toThrow();
     const tooBig = { ...doc, pages: [{ page: 1, text: "Z".repeat(20_001) }], charCount: 20_001 };
     expect(() => validateDocuments([tooBig])).toThrow();
     expect(MAX_DOCUMENT_CHARS).toBeGreaterThan(28_989);
