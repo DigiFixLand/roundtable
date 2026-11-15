@@ -42,6 +42,23 @@ export function snapshotToMarkdown(snapshot: SessionSnapshot): string {
   }
   lines.push("");
 
+  if (snapshot.documents?.length) {
+    lines.push("## Reference material attached");
+    for (const source of snapshot.documents) {
+      lines.push(
+        `- **${source.name}** (${source.format.toUpperCase()}, ${source.pages.length} pages/sections, ${source.charCount.toLocaleString()} characters)`,
+      );
+      if (source.name.endsWith("-manual-answer.txt")) {
+        lines.push("");
+        lines.push(`### User-pasted external AI answer: ${source.name}`);
+        lines.push("_Unverified reference text; not a separate RoundTable vote._");
+        lines.push("");
+        lines.push(source.pages.map((page) => page.text).join("\n"));
+      }
+    }
+    lines.push("");
+  }
+
   for (const round of snapshot.rounds) {
     lines.push(`## Round ${round.number} — ${round.label}`);
     lines.push(`_Consensus score: ${round.consensusScore}%_`);

@@ -1,5 +1,5 @@
 // RoundTable document context: validated, bounded, and distinct from the question.
-export const MAX_DOCUMENTS = 3;
+export const MAX_DOCUMENTS = 6;
 export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 export const MAX_DOCUMENT_CHARS = 120_000;
 export const MAX_DOCUMENT_PAGES = 75;
@@ -19,7 +19,8 @@ export interface AttachedDocument {
 }
 export function validateDocuments(raw: unknown): AttachedDocument[] {
   if (raw == null) return [];
-  if (!Array.isArray(raw) || raw.length > MAX_DOCUMENTS) throw Error("Maximum 3 documents allowed");
+  if (!Array.isArray(raw) || raw.length > MAX_DOCUMENTS)
+    throw Error(`Maximum ${MAX_DOCUMENTS} documents allowed`);
   const documents: AttachedDocument[] = [];
   let total = 0;
   for (const item of raw) {

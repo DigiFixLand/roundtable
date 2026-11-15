@@ -42,6 +42,12 @@ describe("Free-first server-side routing", () => {
       ),
     ).toBe("free-cloud");
     expect(
+      classifyModel("openrouter-free", "https://openrouter.ai/api/v1", "openrouter/free", "free"),
+    ).toBe("free-cloud");
+    expect(
+      classifyModel("openrouter-free", "https://openrouter.ai/api/v1", "openrouter/auto", "free"),
+    ).toBe("paid-cloud");
+    expect(
       classifyModel(
         "openrouter-free",
         "https://openrouter.ai/api/v1",
@@ -56,7 +62,7 @@ describe("Free-first server-side routing", () => {
         "llama-3.3-70b-versatile",
         "free",
       ),
-    ).toBe("free-cloud");
+    ).toBe("paid-cloud");
     expect(
       classifyModel(
         "gemini-free",
@@ -64,7 +70,23 @@ describe("Free-first server-side routing", () => {
         "gemini-2.5-flash-lite",
         "free",
       ),
-    ).toBe("free-cloud");
+    ).toBe("paid-cloud");
+    expect(
+      classifyModel(
+        "openrouter-free",
+        "https://evil.example/api/v1",
+        "meta-llama/llama-3.3:free",
+        "free",
+      ),
+    ).toBe("paid-cloud");
+    expect(
+      classifyModel(
+        "openrouter-free",
+        "http://openrouter.ai/api/v1",
+        "meta-llama/llama-3.3:free",
+        "free",
+      ),
+    ).toBe("paid-cloud");
     expect(classifyModel("openai", "https://api.openai.com/v1", "gpt-4.1", "free")).toBe(
       "paid-cloud",
     );

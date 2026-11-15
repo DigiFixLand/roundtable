@@ -285,6 +285,10 @@ export function findResolvedModel(compositeId: string): ResolvedModel | undefine
   );
   if (staticMatch) return staticMatch;
 
+  // Explicit strict allowlisting must also apply to the run endpoint.
+  // Never accept arbitrary unlisted model IDs when STRICT_MODELS=true.
+  if (isStrictMode()) return undefined;
+
   // For dynamically discovered models, resolve on the fly from provider config
   const providers = parseProviders();
   const provider = providers.find((p) => p.id === providerId);

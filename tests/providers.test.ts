@@ -292,12 +292,20 @@ describe("providers", () => {
       expect(model?.apiKey).toBe("key");
     });
 
-    it("resolves dynamically discovered models on the fly", () => {
+    it("resolves dynamically discovered models on the fly when strict mode is off", () => {
+      delete process.env.STRICT_MODELS;
       process.env.AI_PROVIDERS = PROVIDERS_JSON;
       process.env.GROK_API_KEY = "key";
       const model = findResolvedModel("grok:grok-4-turbo");
       expect(model?.modelId).toBe("grok-4-turbo");
       expect(model?.providerId).toBe("grok");
+    });
+
+    it("rejects unlisted models when strict mode is enabled", () => {
+      process.env.STRICT_MODELS = "true";
+      process.env.AI_PROVIDERS = PROVIDERS_JSON;
+      expect(findResolvedModel("openai:gpt-4o")).toBeDefined();
+      expect(findResolvedModel("openai:gpt-4.1")).toBeUndefined();
     });
 
     it("returns undefined for unknown provider", () => {

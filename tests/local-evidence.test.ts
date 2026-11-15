@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localEvidenceContext } from "@/lib/local-evidence";
+import { localEvidenceContext, localReferenceContext } from "@/lib/local-evidence";
 import type { AttachedDocument } from "@/lib/documents";
 
 function makeDoc(pages: string[]): AttachedDocument {
@@ -36,6 +36,22 @@ describe("local excerpt selection", () => {
     expect(context).toContain('"Roadmap.pdf"');
     expect(context).toContain("page 3");
     expect(context.length).toBeLessThan(3000);
+  });
+  it("reserves space for the primary report when manual AI answers are attached", () => {
+    const report = makeDoc([
+      "Primary report: the backup must be restored in a test environment. ".repeat(50),
+    ]);
+    const manual = {
+      ...makeDoc(["External AI suggestion: migrate all components immediately. ".repeat(35)]),
+      id: "manual-answer",
+      name: "kimi-manual-answer.txt",
+      format: "txt" as const,
+    };
+    const context = localReferenceContext("What should we do next?", [report, manual], 3000);
+    expect(context).toContain("Roadmap.pdf");
+    expect(context).toContain("kimi-manual-answer.txt");
+    expect(context).toContain("not separate votes");
+    expect(context.length).toBeLessThan(4800);
   });
   it("refuses insufficient local context budgets", () => {
     const doc = makeDoc(["Short"]);
